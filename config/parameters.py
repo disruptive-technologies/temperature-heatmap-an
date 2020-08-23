@@ -2,7 +2,7 @@
 resolution = 3
 
 # illustrated temperature range in plot
-temperature_range = [0, 40]
+temperature_range = [18, 27]
 
 # list of room parameter dictionaries
 rooms = [
@@ -56,11 +56,21 @@ rooms = [
                 'x': 11.7,
                 'y': 3.4,
             },
-            {
-                'id': 'bicb1b5t9rv000f4ac8g',
-                'x': 7.0,
-                'y': 3.4,
-            },
         ],
+    },
+
+    # room 2
+    {
+        'corners': {
+            'x': [21.3, 21.3, 26.0, 26.0],
+            'y': [ 0.0,  4.0,  4.0,  0.0],
+        },
+        'sensors': [
+            {
+                'id': 'bjei71tp0jt000aqc78g',
+                'x': 24,
+                'y':  0,
+            }
+        ]
     },
 ]

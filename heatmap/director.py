@@ -33,6 +33,7 @@ class Director():
 
         # variables
         self.last_update = -1
+        self.cc = 0
 
         # set stream endpoint
         self.stream_endpoint = "{}/projects/{}/devices:stream".format(self.api_url_base, self.project_id)
@@ -277,7 +278,7 @@ class Director():
         
 
     def initialise_plot(self):
-        self.pfig, self.pax = plt.subplots()
+        self.pfig, self.pax = plt.subplots(dpi=100)
         self.pfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=prm.temperature_range[0], vmax=prm.temperature_range[1]), cmap=cm.jet))
 
 
@@ -305,6 +306,18 @@ class Director():
             for c in pc.collections:
                 c.set_clip_path(patch)
 
+        # blocking
         if blocking:
             plt.title('Blocking @ t={}'.format(update_time))
-            plt.waitforbuttonpress()
+
+            if 0:
+                self.pfig.set_figheight(8)
+                self.pfig.set_figwidth(30)
+                out = '/home/kepler/tmp/'
+                self.pfig.savefig(out + '{:09d}.png'.format(self.cc), dpi=100, bbox_inches='tight')
+                self.cc += 1
+            else:
+                # scale axes equally
+                plt.gca().set_aspect('equal', adjustable='box')
+                plt.waitforbuttonpress()
+
