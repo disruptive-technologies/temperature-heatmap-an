@@ -283,6 +283,7 @@ class Director():
 
 
     def plot(self, update_time, blocking=False):
+        self.pax.clear()
         # iterate rooms
         for r in self.rooms:
             # get room wall outline
@@ -310,7 +311,7 @@ class Director():
         if blocking:
             plt.title('Blocking @ t={}'.format(update_time))
 
-            if 0:
+            if 1:
                 self.pfig.set_figheight(8)
                 self.pfig.set_figwidth(30)
                 out = '/home/kepler/tmp/'
