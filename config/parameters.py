@@ -1,5 +1,5 @@
 # heatmap resolution in points per meter
-resolution = 3
+resolution = 5
 
 # illustrated temperature range in plot
 temperature_range = [18, 27]

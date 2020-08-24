@@ -66,7 +66,7 @@ class Director():
         # general arguments
         parser.add_argument('--starttime', metavar='', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
         parser.add_argument('--endtime',   metavar='', help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
-        parser.add_argument('--timestep',  metavar='', help='Seconds between each heatmap update.',                required=False, default=3600)
+        parser.add_argument('--timestep',  metavar='', help='Heatmap update period.', required=False, default=3600, type=int)
 
         # boolean flags
         parser.add_argument('--plot',   action='store_true', help='Plot the estimated desk occupancy.')
