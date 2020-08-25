@@ -120,6 +120,30 @@ class Director():
             # append instance to list
             self.rooms.append(Room(room))
 
+        # set bounding box
+        self.__set_dimensions()
+    
+
+    def __set_dimensions(self):
+        xax = [None, None]
+        yax = [None, None]
+        for room in prm.rooms:
+            for i in range(len(room['corners']['x'])):
+                x = room['corners']['x'][i]
+                y = room['corners']['y'][i]
+                if xax[0] is None or x < xax[0]:
+                    xax[0] = x
+                if xax[1] is None or x > xax[1]:
+                    xax[1] = x
+                if yax[0] is None or y < yax[0]:
+                    yax[0] = y
+                if yax[1] is None or y > yax[1]:
+                    yax[1] = y
+
+        self.width = xax[1] - xax[0]
+        self.height = yax[1] - yax[0]
+        # print('w: {},  h: {}'.format(self.width, self.height))
+
 
     def __fetch_project_devices(self):
         """
@@ -289,29 +313,45 @@ class Director():
             # get room wall outline
             outline = r.get_outline()
 
-            pc = self.pax.contourf(r.X, r.Y, r.Z, prm.temperature_range[1]-prm.temperature_range[0], cmap=cm.jet)
-            sc = self.pax.scatter(r.x, r.y, 1000, r.z, cmap=cm.jet, edgecolors='k')
+            # set map
+            cmap = cm.jet
+
+            # contour
+            # pc = self.pax.contourf(r.X, r.Y, r.Z, prm.temperature_range[1]-prm.temperature_range[0], cmap=cmap)
+            pc = self.pax.contourf(r.X, r.Y, r.Z, 100, cmap=cmap)
+
+            # scatter
+            # sc = self.pax.scatter(r.x, r.y, 250, r.z, cmap=cm.jet, edgecolors='k')
+
+            # set temperature scale
             if r.Z is not None:
-
-                # set temperature scale
                 pc.set_clim(prm.temperature_range[0], prm.temperature_range[1])
-                sc.set_clim(prm.temperature_range[0], prm.temperature_range[1])
+                # sc.set_clim(prm.temperature_range[0], prm.temperature_range[1])
 
-            self.pax.plot(outline[0], outline[1], '-k', linewidth=5)
+            # draw outline
+            self.pax.plot(outline[0], outline[1], '-k', linewidth=2)
             for door in r.doors:
                 self.pax.plot(door['x'], door['y'], '-k', linewidth=10)
 
+            # mask
             clippath = Path(np.c_[r.corners['x'], r.corners['y']])
             patch = PathPatch(clippath, facecolor='none')
             self.pax.add_patch(patch)
             for c in pc.collections:
                 c.set_clip_path(patch)
 
+            sc = []
+            for i in range(len(r.x)):
+                n = (r.z[i]-prm.temperature_range[0]) / (prm.temperature_range[1]-prm.temperature_range[0])
+                c = plt.Circle((r.x[i], r.y[i]), 0.25, color='k')
+                self.pax.add_artist(c)
+                c.set_clip_path(patch)
+
         # blocking
         if blocking:
             plt.title('Blocking @ t={}'.format(update_time))
 
-            if 1:
+            if 0:
                 self.pfig.set_figheight(8)
                 self.pfig.set_figwidth(30)
                 out = '/home/kepler/tmp/'
@@ -321,4 +361,5 @@ class Director():
                 # scale axes equally
                 plt.gca().set_aspect('equal', adjustable='box')
                 plt.waitforbuttonpress()
+                # plt.show()
 
