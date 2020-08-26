@@ -68,7 +68,7 @@ walls = [
 ]
 
 sensors = [
-    Sensor(Point(2, 8)),
+    Sensor(Point(12, 16)),
 ]
 
 
@@ -127,14 +127,33 @@ class Director():
 
 
     def __precalculate_eucledian(self):
-        # iterate sensors
-        for i, s in enumerate(self.sensors):
-            # initialise empty distance grid
-            s.D = np.zeros(shape=self.X.shape)
-            path = []
+        if 0:
+            # iterate sensors
+            for i, s in enumerate(self.sensors):
+                # initialise empty distance grid
+                s.D = np.zeros(shape=self.X.shape)
+                path = []
 
-            s.D, _ = self.__fill_grid(s.D, s.p, path, dr=0)
-            self.plot(start=sensors[0], grid=[s.D])
+                s.D, _ = self.__fill_grid(s.D, s.p, path, dr=0)
+                self.plot(start=sensors[0], grid=[s.D])
+
+        else:
+            for x in range(self.xlim[0], self.xlim[1]):
+                for y in range(self.ylim[0], self.ylim[1]):
+                    if (x+1)%2 == 0:
+                        yy = self.ylim[1] - y - 0.5
+                    else:
+                        yy = y + 0.5
+                    xx = x + 0.5
+
+                    s = Sensor(Point(xx, yy))
+
+                    # initialise empty distance grid
+                    s.D = np.zeros(shape=self.X.shape)
+                    path = []
+
+                    s.D, _ = self.__fill_grid(s.D, s.p, path, dr=0)
+                    self.plot(start=s, grid=[s.D])
 
 
     def __fill_grid(self, D, origin, path, dr):
@@ -213,6 +232,9 @@ class Director():
         for wall in self.walls:
             if start not in wall.pp:
                 if self.line_intersects(start, goal, wall.p1, wall.p2):
+                    los = False
+                # concave check
+                elif len(start.walls) == 2 and self.__is_concave(goal, start):
                     los = False
         if los:
             return self.eucledian_distance(start.x, start.y, goal.x, goal.y)
