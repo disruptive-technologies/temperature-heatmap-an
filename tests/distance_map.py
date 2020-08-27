@@ -143,6 +143,10 @@ class Director():
         if 1:
             # iterate sensors
             for i, s in enumerate(self.sensors):
+                # reset corner distances
+                for corner in corners:
+                    corner.shortest_distance = np.inf
+
                 # initialise empty distance grid
                 s.D = np.zeros(shape=self.X.shape)
                 path = []
@@ -206,11 +210,15 @@ class Director():
             # calculate distance to candidate
             ddr = self.eucledian_distance(origin.x, origin.y, c.x, c.y)
 
-            # recursive
-            # c.unused = False
-            self.dd += 1
-            D, path = self.__fill_grid(D, initial, c, path, dr+ddr)
-            path.pop()
+            # if dr + ddr < c.shortest_distance:
+            if 1:
+                c.shortest_distance = dr + ddr
+                # recursive
+                # c.unused = False
+                self.dd += 1
+                D, path = self.__fill_grid(D, initial, c, path, dr+ddr)
+                path.pop()
+        for c in candidates:
             c.unused = True
         
         return D, path
@@ -223,6 +231,7 @@ class Director():
         
         # skip if concave
         if len(corner.walls) == 2 and self.__is_concave(origin, corner):
+            print('[{}, {}]'.format(corner.x, corner.y))
             return False
 
         # skip if corner is relative to origin
@@ -381,6 +390,8 @@ class Director():
         p0 = point
         x0 = p0.x
         y0 = p0.y
+
+        # theres a bug where corners are skipped if on same x- or y coordinte
     
         xx = 1
         yy = 1

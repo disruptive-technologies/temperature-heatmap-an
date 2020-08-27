@@ -11,6 +11,7 @@ class Point():
         self.children = []
         self.unused = True
         self.walls = []
+        self.shortest_distance = np.inf
 
 class Line():
     def __init__(self, p1, p2, wall=False):
