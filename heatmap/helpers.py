@@ -4,6 +4,36 @@ import numpy  as np
 import pandas as pd
 
 
+class Point():
+    def __init__(self, x=None, y=None):
+        self.x = x
+        self.y = y
+        self.children = []
+        self.unused = True
+        self.walls = []
+
+class Line():
+    def __init__(self, p1, p2, wall=False):
+        self.p1 = p1
+        self.p2 = p2
+        self.pp = [p1, p2]
+
+        # add self object to point
+        if wall:
+            p1.walls.append(self)
+            p2.walls.append(self)
+
+        self.xx = [p1.x, p2.x]
+        self.yy = [p1.y, p2.y]
+
+
+class Sensor():
+    def __init__(self, p):
+        self.p = p
+        self.x = p.x
+        self.y = p.y
+
+
 def print_error(text, terminate=True):
     """
     Print an error message and terminate as desired.

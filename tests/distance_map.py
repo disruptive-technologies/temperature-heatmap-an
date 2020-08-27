@@ -34,42 +34,52 @@ class Sensor():
         self.y = p.y
         
 
-# parameters
-corners = [
-    Point(0,0),
-    Point(10,0),
-    Point(14,0),
-    Point(0,10),
-    Point(6,10),
-    Point(8,10),
-    Point(10,10),
-    Point(0,15),
-    Point(2,15),
-    Point(4,15),
-    Point(10,15),
-    Point(0,18),
-    Point(14,18),
-]
+if 0:
+    # parameters
+    corners = [
+        Point(0,0),
+        Point(10,0),
+        Point(14,0),
+        Point(0,10),
+        Point(6,10),
+        Point(8,10),
+        Point(10,10),
+        Point(0,15),
+        Point(2,15),
+        Point(4,15),
+        Point(10,15),
+        Point(0,18),
+        Point(14,18),
+    ]
+    
+    walls = [
+        Line(corners[0],  corners[1] , wall=True),
+        Line(corners[1],  corners[2] , wall=True),
+        Line(corners[3],  corners[4] , wall=True),
+        Line(corners[5],  corners[6] , wall=True),
+        Line(corners[7],  corners[8] , wall=True),
+        Line(corners[9],  corners[10], wall=True),
+        Line(corners[11], corners[12], wall=True),
+        Line(corners[0],  corners[3] , wall=True),
+        Line(corners[3],  corners[7] , wall=True),
+        Line(corners[7],  corners[11], wall=True),
+        Line(corners[1],  corners[6] , wall=True),
+        Line(corners[6],  corners[10], wall=True),
+        Line(corners[2],  corners[12], wall=True),
+    ]
+    
+    sensors = [
+        Sensor(Point(12, 16)),
+    ]
 
-walls = [
-    Line(corners[0],  corners[1] , wall=True),
-    Line(corners[1],  corners[2] , wall=True),
-    Line(corners[3],  corners[4] , wall=True),
-    Line(corners[5],  corners[6] , wall=True),
-    Line(corners[7],  corners[8] , wall=True),
-    Line(corners[9],  corners[10], wall=True),
-    Line(corners[11], corners[12], wall=True),
-    Line(corners[0],  corners[3] , wall=True),
-    Line(corners[3],  corners[7] , wall=True),
-    Line(corners[7],  corners[11], wall=True),
-    Line(corners[1],  corners[6] , wall=True),
-    Line(corners[6],  corners[10], wall=True),
-    Line(corners[2],  corners[12], wall=True),
-]
-
-sensors = [
-    Sensor(Point(12, 16)),
-]
+else:
+    # project
+    import os
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from config.layout import corners
+    from config.layout import walls
+    from config.layout import sensors
 
 
 class Director():
@@ -80,6 +90,7 @@ class Director():
         self.sensors    = sensors
         self.resolution = resolution
         self.cc = 0
+        self.dd = 0
 
         # initialise plot
         self.initialise_plot()
@@ -111,6 +122,8 @@ class Director():
                 self.ylim[0] = c.y
             if c.y > self.ylim[1]:
                 self.ylim[1] = c.y
+        self.xlim = [int(np.floor(self.xlim[0])), int(np.ceil(self.xlim[1]))]
+        self.ylim = [int(np.floor(self.ylim[0])), int(np.ceil(self.ylim[1]))]
 
 
     def __generate_meshgrid(self):
@@ -127,15 +140,16 @@ class Director():
 
 
     def __precalculate_eucledian(self):
-        if 0:
+        if 1:
             # iterate sensors
             for i, s in enumerate(self.sensors):
                 # initialise empty distance grid
                 s.D = np.zeros(shape=self.X.shape)
                 path = []
 
-                s.D, _ = self.__fill_grid(s.D, s.p, path, dr=0)
-                self.plot(start=sensors[0], grid=[s.D])
+                self.dd = 0
+                s.D, _ = self.__fill_grid(s.D, s.p, s.p, path, dr=0)
+                self.plot(start=s, grid=[s.D])
 
         else:
             for x in range(self.xlim[0], self.xlim[1]):
@@ -156,7 +170,8 @@ class Director():
                     self.plot(start=s, grid=[s.D])
 
 
-    def __fill_grid(self, D, origin, path, dr):
+    def __fill_grid(self, D, initial, origin, path, dr):
+        print(self.dd)
         path.append([origin.x, origin.y])
         # iterate grid
         # iterate x-axis
@@ -182,7 +197,7 @@ class Director():
                     candidates.append(corner)
                     corner.unused = False
         
-        if 0:
+        if 1:
             # plot
             self.plot(start=origin, goal=node, grid=[D], candidates=candidates, path=path)
 
@@ -193,7 +208,8 @@ class Director():
 
             # recursive
             # c.unused = False
-            D, path = self.__fill_grid(D, c, path, dr+ddr)
+            self.dd += 1
+            D, path = self.__fill_grid(D, initial, c, path, dr+ddr)
             path.pop()
             c.unused = True
         
@@ -381,6 +397,11 @@ class Director():
         for p in wall.pp:
             if p != point:
                 p2 = p
+
+        # stop if straight line
+        if abs(p1.x - p2.x) == 0 or abs(p1.y - p2.y) == 0:
+            return True
+
         tx = (p1.x + p2.x) / 2
         ty = (p1.y + p2.y) / 2
     
