@@ -6,17 +6,28 @@ import pandas as pd
 
 class Point():
     def __init__(self, x=None, y=None):
+        # give to self
         self.x = x
         self.y = y
+
+        # initialise lists
         self.children = []
-        self.unused = True
         self.walls = []
+
+        # flag if used
+        self.unused = True
+
+        # variables
         self.shortest_distance = np.inf
+
 
 class Line():
     def __init__(self, p1, p2, wall=False):
+        # give to self
         self.p1 = p1
         self.p2 = p2
+
+        # list of points
         self.pp = [p1, p2]
 
         # add self object to point
@@ -24,13 +35,18 @@ class Line():
             p1.walls.append(self)
             p2.walls.append(self)
 
+        # some coordinate formatting
         self.xx = [p1.x, p2.x]
         self.yy = [p1.y, p2.y]
 
 
 class Sensor():
-    def __init__(self, p):
+    def __init__(self, p, t=None):
+        # give to self
         self.p = p
+        self.t = t
+        
+        # extract x- and y- coordinate
         self.x = p.x
         self.y = p.y
 

@@ -175,8 +175,13 @@ class Director():
 
 
     def __fill_grid(self, D, initial, origin, path, dr):
-        print(self.dd)
         path.append([origin.x, origin.y])
+        if dr > origin.shortest_distance:
+            return D, path
+        else:
+            origin.shortest_distance = dr
+
+        print(self.dd)
         # iterate grid
         # iterate x-axis
         for x, gx in enumerate(self.x_interp):
@@ -205,9 +210,11 @@ class Director():
                 for corner in corners:
                     # validate corner
                     if corner.unused:
-                        if self.__validate_corner(offset, corner):
-                            candidates.append(corner)
-                            corner.unused = False
+                        ddr = self.eucledian_distance(origin.x, origin.y, corner.x, corner.y)
+                        if dr + ddr < corner.shortest_distance:
+                            if self.__validate_corner(offset, corner):
+                                candidates.append(corner)
+                                corner.unused = False
         
         if 1:
             # plot
@@ -218,14 +225,10 @@ class Director():
             # calculate distance to candidate
             ddr = self.eucledian_distance(origin.x, origin.y, c.x, c.y)
 
-            # if dr + ddr < c.shortest_distance:
-            if 1:
-                c.shortest_distance = dr + ddr
-                # recursive
-                # c.unused = False
-                self.dd += 1
-                D, path = self.__fill_grid(D, initial, c, path, dr+ddr)
-                path.pop()
+            # recursive
+            self.dd += 1
+            D, path = self.__fill_grid(D, initial, c, path, dr+ddr)
+            path.pop()
         for c in candidates:
             c.unused = True
         
@@ -239,7 +242,6 @@ class Director():
         
         # skip if concave
         if len(corner.walls) == 2 and self.__is_concave(origin, corner):
-            print('[{}, {}]'.format(corner.x, corner.y))
             return False
 
         # skip if corner is relative to origin
