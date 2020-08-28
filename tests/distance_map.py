@@ -306,7 +306,7 @@ class Director():
         if grid != None:
             for g in grid:
                 pc = self.ax.contourf(self.X.T, self.Y.T, g.T, max(1, int(g.max()-g.min())))
-                pc.set_clim(0, 30)
+                pc.set_clim(0, max(self.xlim[1]-self.xlim[0], self.ylim[1]-self.ylim[0]))
 
         # plot path
         if path != None:
