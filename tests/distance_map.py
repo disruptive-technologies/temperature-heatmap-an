@@ -185,6 +185,7 @@ class Director():
                 # iterate sensors
                 # get distance from sensor to grid node
                 node = Point(self.x_interp[x], self.y_interp[y])
+
                 d = self.__pathfind(origin, node)
                 if d != None:
                     d = d + dr
@@ -194,12 +195,19 @@ class Director():
 
         # find first corner candidates
         candidates = []
-        for corner in corners:
-            # validate corner
-            if corner.unused:
-                if self.__validate_corner(origin, corner):
-                    candidates.append(corner)
-                    corner.unused = False
+        # nudge in convex directions
+        for dx, dy in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
+            # create offset point
+            m = 10
+            offset = Point(origin.x+dx/m, origin.y+dy/m)
+            # validate nudge is convex
+            if not self.__is_concave(offset, origin):
+                for corner in corners:
+                    # validate corner
+                    if corner.unused:
+                        if self.__validate_corner(offset, corner):
+                            candidates.append(corner)
+                            corner.unused = False
         
         if 1:
             # plot
@@ -282,15 +290,15 @@ class Director():
         # draw candidate corners
         if candidates != None:
             for c in candidates:
-                self.ax.plot(c.x, c.y, 'og', markersize=15)
+                self.ax.plot(c.x, c.y, 'ob', markersize=10)
 
         # draw active node
         if goal != None:
-            self.ax.plot(goal.x, goal.y, 'or', markersize=15)
+            self.ax.plot(goal.x, goal.y, 'or', markersize=10)
 
         # draw active sensor
         if start != None:
-            self.ax.plot(start.x, start.y, '*r', markersize=25)
+            self.ax.plot(start.x, start.y, 'or', markersize=10)
 
         # plot grid
         if grid != None:
@@ -387,12 +395,16 @@ class Director():
 
 
     def __is_concave(self, node, point):
+        # a point with a single wall connected (endpoint) is always convex
+        if len(point.walls) < 2:
+            return False
+
+        # corner to check
         p0 = point
         x0 = p0.x
         y0 = p0.y
-
-        # theres a bug where corners are skipped if on same x- or y coordinte
     
+        # define where we are
         xx = 1
         yy = 1
         if node.x < p0.x:

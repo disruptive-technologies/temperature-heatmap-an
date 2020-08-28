@@ -79,7 +79,7 @@ walls = [
 
 # sensors
 sensors = [
-    # Sensor(Point( 8.0,  0.5)), # 1
-    # Sensor(Point(12.5,  3.5)), # 2
+    Sensor(Point( 8.0,  0.5)), # 1
+    Sensor(Point(12.5,  3.5)), # 2
     Sensor(Point(11.1,  7.5)), # 2
 ]
