@@ -18,7 +18,7 @@ class Point():
         self.unused = True
 
         # variables
-        self.shortest_distance = np.inf
+        self.shortest_distance = None
 
 
 class Line():
