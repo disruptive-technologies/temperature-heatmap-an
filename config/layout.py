@@ -91,7 +91,15 @@ walls = [
 
 # sensors
 sensors = [
-    Sensor(Point( 8.0,  0.5), t=25), # 1
-    Sensor(Point(12.5,  3.5), t=25), # 2
-    Sensor(Point(11.1,  7.5), t=20), # 2
+    Sensor(Point( 8.0,  0.5), t=25), #  1
+    Sensor(Point(12.5,  3.5), t=25), #  2
+    Sensor(Point(11.1,  7.5), t=23), #  3
+    Sensor(Point(15.5,  0.5), t=23), #  4
+    Sensor(Point(20.5,  3.5), t=23), #  5
+    Sensor(Point(18.5,  5.9), t=16), #  6
+    Sensor(Point(24.0,  4.1), t=24), #  7
+    Sensor(Point(25.5,  0.3), t=25), #  8
+    Sensor(Point(27.9,  7.0), t=24), #  9
+    Sensor(Point(30.6,  2.0), t=24), # 10
+    Sensor(Point(35.4,  3.0), t=24), # 11
 ]
