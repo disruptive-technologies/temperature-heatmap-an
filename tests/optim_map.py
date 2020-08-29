@@ -81,9 +81,28 @@ class Director():
             path = []
             self.__find_shortest_paths(sensor.p, path, dr=0)
 
-            for corner in corners:
+            # initialise grid
+            sensor.D = np.zeros(shape=self.X.shape)
+
+            # populate map from sensor poitn of view
+            sensor.D = self.__populate_grid(sensor.D, sensor.p)
+
+            # plot population process
+            if 0:
+                self.plot(start=sensor.p, grid=[sensor.D])
+
+            # populate grid with distances from each corner
+            for ci, corner in enumerate(corners):
                 if len(corner.shortest_path) > 0:
-                    self.plot(sensor.p, goal=corner, path=corner.shortest_path)
+                    print('sensor {}, corner {}'.format(i, ci))
+                    sensor.D = self.__populate_grid(sensor.D, corner)
+
+                    # plot population process
+                    if 0:
+                        self.plot(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
+
+            # plot population result
+            self.plot(start=sensor.p, grid=[sensor.D])
 
 
     def __find_shortest_paths(self, active, path, dr):
@@ -94,11 +113,13 @@ class Director():
         if active.shortest_distance != None and dr > active.shortest_distance:
             return path
         
-        # as this is currently the sortest path from sensor to active, give it to active
+        # as this is currently the sortest path from sensor to active, copy it to active
         active.shortest_distance = dr
-        active.shortest_path = []
-        for p in path:
-            active.shortest_path.append(p)
+        active.shortest_path = [p for p in path]
+
+        # path search plot
+        if 0:
+            self.plot(start=active, paths=[path] + [c.shortest_path for c in corners])
 
         # find candidate corners for path expansion
         candidates = []
@@ -123,7 +144,7 @@ class Director():
 
         if 0:
             # plot
-            self.plot(start=active, candidates=candidates, path=path)
+            self.plot(start=active, candidates=candidates, paths=[path])
 
         # recursively iterate candidates
         for c in candidates:
@@ -138,6 +159,46 @@ class Director():
             c.unused = True
 
         return path
+
+
+    def __populate_grid(self, D, corner):
+        # iterate x- and y-axis axis
+        for x, gx in enumerate(self.x_interp):
+            for y, gy in enumerate(self.y_interp):
+                # set active node
+                node = hlp.Point(self.x_interp[x], self.y_interp[y])
+
+                # get distance from corner to node if in line of sight
+                d = self.__pathfind(corner, node)
+
+                # update map if d is a valid value
+                if d != None:
+                    # add distance from sensor to corner
+                    d += corner.shortest_distance
+
+                    # update map if less than existing value
+                    if D[y, x] == 0 or d < D[y, x]:
+                        D[y, x] = d
+
+        return D
+
+
+    def __pathfind(self, start, goal):
+        # draw a straight line
+        straight = hlp.Line(start, goal)
+
+        # check if los
+        los = True
+        for wall in self.walls:
+            if start not in wall.pp:
+                if self.line_intersects(start, goal, wall.p1, wall.p2):
+                    los = False
+                # concave check
+                elif len(start.walls) == 2 and self.__is_concave(goal, start):
+                    los = False
+        if los:
+            return self.eucledian_distance(start.x, start.y, goal.x, goal.y)
+        return None
 
 
     def __validate_corner(self, origin, corner):
@@ -359,13 +420,13 @@ class Director():
         return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
-    def plot(self, start=None, goal=None, lines=None, grid=None, candidates=None, path=None):
+    def plot(self, start=None, goal=None, lines=None, grid=None, candidates=None, paths=None):
         # clear
         self.ax.clear()
 
         # draw walls
         for wall in self.walls:
-            self.ax.plot(wall.xx, wall.yy, '-k', linewidth=10)
+            self.ax.plot(wall.xx, wall.yy, '-k', linewidth=3)
 
         # draw lines
         if lines != None:
@@ -392,11 +453,12 @@ class Director():
                 pc.set_clim(0, max(self.xlim[1]-self.xlim[0], self.ylim[1]-self.ylim[0]))
 
         # plot path
-        if path != None:
-            for i in range(1, len(path)):
-                xx = [path[i-1][0], path[i][0]]
-                yy = [path[i-1][1], path[i][1]]
-                self.ax.plot(xx, yy, '.-r')
+        if paths != None:
+            for path in paths:
+                for i in range(1, len(path)):
+                    xx = [path[i-1][0], path[i][0]]
+                    yy = [path[i-1][1], path[i][1]]
+                    self.ax.plot(xx, yy, '.-r')
 
         if 0:
             self.fig.set_figheight(self.ylim[1] - self.ylim[0])
