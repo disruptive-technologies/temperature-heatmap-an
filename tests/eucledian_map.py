@@ -5,6 +5,12 @@ import argparse
 import numpy             as np
 import matplotlib.pyplot as plt
 
+# colormaps
+from matplotlib        import cm
+from matplotlib.colors import Normalize
+tlim = [18, 27]
+cmap = cm.jet
+
 # mutlithreading
 import multiprocessing as mpr
 
@@ -38,14 +44,14 @@ class Director():
         # parse system arguments
         self.__parse_sysargs()
 
-        # initialise plot
-        self.initialise_plot()
-
         # get limits for x- and y- axes
         self.__set_bounding_box()
 
         # generate meshgrid
         self.__generate_meshgrid()
+
+        # spawn heatmap
+        self.heatmap = np.zeros(shape=self.X.shape)
 
         # pre-calculate sensor distances in grid
         if self.args['debug']:
@@ -54,8 +60,8 @@ class Director():
             self.__eucledian_map_threaded()
 
         # Plot results
-        for sensor in self.sensors:
-            self.plot(start=sensor.p, grid=[sensor.D])
+        # for sensor in self.sensors:
+        #     self.plot(start=sensor.p, grid=[sensor.D])
 
 
     def __parse_sysargs(self):
@@ -169,7 +175,7 @@ class Director():
 
         # just skip everything and read from cache if so desired
         if self.args['read']:
-            self.sensors = self.__get_cached_sensors()
+            self.__get_cached_sensors()
             return
 
         # initialise variables needed for process
@@ -193,13 +199,10 @@ class Director():
             nth_proc = nth_proc + 1
 
         # fetch sensors from cache
-        self.sensors = self.__get_cached_sensors()
+        self.__get_cached_sensors()
 
 
     def __get_cached_sensors(self):
-        # initialise list
-        sensors = []
-
         # get files in cache
         cache_files = os.listdir(cache_dir)
 
@@ -216,7 +219,8 @@ class Director():
                     pickle_sensor = hlp.read_pickle(os.path.join(cache_dir, pickle_identifier + '{}.pkl'.format(i)), cout=True)
 
                     # exchange
-                    sensors.append(pickle_sensor)
+                    # sensors.append(pickle_sensor)
+                    self.sensors[i].D = pickle_sensor.D
 
                     # found it
                     found = True
@@ -224,8 +228,6 @@ class Director():
             # shouldn't happen, but just in case
             if not found:
                 hlp.print_error('Pickle #{} has gone missing.'.format(i), terminate=True)
-
-        return sensors
 
 
     def __find_shortest_paths(self, active, path, dr):
@@ -297,10 +299,10 @@ class Director():
                 # update map if d is a valid value
                 if d != None:
                     # add distance from sensor to corner
-                    d = self.maxdim - (d + corner.shortest_distance)
+                    d += corner.shortest_distance
 
                     # update map if less than existing value
-                    if d > D[y, x]:
+                    if D[y, x] == 0 or d < D[y, x]:
                         D[y, x] = d
 
         return D
@@ -482,11 +484,49 @@ class Director():
         return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
+    def update_heatmap(self):
+        # iterate x- and y-axis axis
+        for x, gx in enumerate(self.x_interp):
+            for y, gy in enumerate(self.y_interp):
+                # reset lists
+                temperatures = []
+                distances    = []
+
+                # iterate sensors
+                for sensor in self.sensors:
+                    # check if distance grid is valid here
+                    if sensor.D[y, x] > 0:
+                        temperatures.append(sensor.t)
+                        distances.append(sensor.D[y, x])
+
+                # do nothing if no valid distances
+                if len(distances) == 0:
+                    self.heatmap[y, x] = None
+                elif len(distances) == 1:
+                    self.heatmap[y, x] = temperatures[0]
+                else:
+                    # calculate weighted average
+                    weights = (1/(np.array(distances)))**2
+                    temperatures = np.array(temperatures)
+                    
+                    # update mesh
+                    self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
+
+
     def initialise_plot(self):
         self.fig, self.ax = plt.subplots()
 
 
+    def initialise_heatmap_plot(self):
+        self.hfig, self.hax = plt.subplots()
+        self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=tlim[0], vmax=tlim[1]), cmap=cmap))
+
+
     def plot(self, start=None, goal=None, lines=None, grid=None, candidates=None, paths=None):
+        # initialise if not
+        if not hasattr(self, 'ax'):
+            self.initialise_plot()
+
         # clear
         self.ax.clear()
 
@@ -529,7 +569,7 @@ class Director():
         if 0:
             self.fig.set_figheight(self.ylim[1] - self.ylim[0])
             self.fig.set_figwidth(self.xlim[1] - self.xlim[0])
-            out = '/home/kepler/tmp3/'
+            out = '/home/kepler/tmp/'
             self.fig.savefig(out + '{:09d}.png'.format(self.cc), dpi=100, bbox_inches='tight')
             self.cc += 1
         else:
@@ -537,7 +577,41 @@ class Director():
             plt.waitforbuttonpress()
 
 
+    def plot_heatmap(self, blocking=True):
+        # initialise if not
+        if not hasattr(self, 'hax'):
+            self.initialise_heatmap_plot()
+
+        # clear
+        self.hax.clear()
+
+        # draw walls
+        for wall in self.walls:
+            self.hax.plot(wall.xx, wall.yy, '-k', linewidth=3)
+
+        # draw sensors
+        for sensor in self.sensors:
+            self.hax.plot(sensor.p.x, sensor.p.y, 'ok', markersize=10)
+
+
+        # draw heatmap
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, tlim[1]-tlim[0], cmap=cmap)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cmap)
+        pc.set_clim(tlim[0], tlim[1])
+
+        if blocking:
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.show()
+        else:
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.waitforbuttonpress()
+
+
 if __name__ == '__main__':
     # initialise director
-    d = Director(corners, walls, sensors, resolution=3)
+    d = Director(corners, walls, sensors, resolution=5)
+
+    d.update_heatmap()
+
+    d.plot_heatmap()
 

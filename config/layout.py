@@ -91,15 +91,74 @@ walls = [
 
 # sensors
 sensors = [
-    Sensor(Point( 8.0,  0.5), t=25), #  1
-    Sensor(Point(12.5,  3.5), t=25), #  2
-    Sensor(Point(11.1,  7.5), t=23), #  3
+    Sensor(Point( 8.0,  0.5), t=24), #  1
+    Sensor(Point(12.5,  3.5), t=23), #  2
+    Sensor(Point(11.1,  7.5), t=24), #  3
     Sensor(Point(15.5,  0.5), t=23), #  4
-    Sensor(Point(20.5,  3.5), t=23), #  5
-    Sensor(Point(18.5,  5.9), t=16), #  6
-    Sensor(Point(24.0,  4.1), t=24), #  7
-    Sensor(Point(25.5,  0.3), t=25), #  8
-    Sensor(Point(27.9,  7.0), t=24), #  9
+    Sensor(Point(20.5,  3.5), t=22), #  5
+    Sensor(Point(18.5,  5.9), t=20), #  6
+    Sensor(Point(24.0,  4.1), t=23), #  7
+    Sensor(Point(25.5,  0.3), t=27), #  8
+    Sensor(Point(27.9,  7.0), t=22), #  9
     Sensor(Point(30.6,  2.0), t=24), # 10
-    Sensor(Point(35.4,  3.0), t=24), # 11
+    Sensor(Point(35.4,  3.0), t=21), # 11
+    Sensor(Point(30.5,  8.4), t=21), # 12
 ]
+
+# sensors = [
+#     Sensor(Point(1, 2)),
+#     Sensor(Point(3, 2)),
+#     Sensor(Point(5, 2)),
+#     Sensor(Point(5, 4)),
+#     Sensor(Point(5, 6)),
+#     Sensor(Point(5, 8)),
+#     Sensor(Point(4, 7)),
+#     Sensor(Point(4, 5)),
+#     Sensor(Point(6, 5)),
+#     Sensor(Point(8, 5)),
+#     Sensor(Point(10, 5)),
+#     Sensor(Point(12, 5)),
+#     Sensor(Point(14, 5)),
+#     Sensor(Point(16.5, 5)),
+#     Sensor(Point(16.5, 7)),
+#     Sensor(Point(14, 7)),
+#     Sensor(Point(12, 7)),
+#     Sensor(Point(12, 9)),
+#     Sensor(Point(12, 10.5)),
+#     Sensor(Point(15, 10.5)),
+#     Sensor(Point(15, 8)),
+#     Sensor(Point(18, 8)),
+#     Sensor(Point(16.5, 6)),
+#     Sensor(Point(19, 5)),
+#     Sensor(Point(21, 5)),
+#     Sensor(Point(23, 5)),
+#     Sensor(Point(25, 5)),
+#     Sensor(Point(27, 7)),
+#     Sensor(Point(27, 8)),
+#     Sensor(Point(27, 7)),
+#     Sensor(Point(27.5, 5)),
+#     Sensor(Point(26, 3)),
+#     Sensor(Point(24, 3)),
+#     Sensor(Point(24, 1)),
+#     Sensor(Point(27, 1)),
+#     Sensor(Point(27, 3)),
+#     Sensor(Point(27, 5)),
+#     Sensor(Point(29, 5)),
+#     Sensor(Point(30.5, 6)),
+#     Sensor(Point(29, 7)),
+#     Sensor(Point(30.5, 6)),
+#     Sensor(Point(30, 5)),
+#     Sensor(Point(30, 3)),
+#     Sensor(Point(29, 1)),
+#     Sensor(Point(30, 2)),
+#     Sensor(Point(31, 5)),
+#     Sensor(Point(31, 3)),
+#     Sensor(Point(32, 1)),
+#     Sensor(Point(32, 2.5)),
+#     Sensor(Point(31, 5)),
+#     Sensor(Point(33, 5.5)),
+#     Sensor(Point(34, 5.0)),
+#     Sensor(Point(34, 3.0)),
+#     Sensor(Point(34, 1.0)),
+# ]
+
