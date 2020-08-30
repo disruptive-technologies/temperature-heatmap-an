@@ -1,5 +1,7 @@
 # packages
+import os
 import sys
+import pickle
 import numpy  as np
 import pandas as pd
 
@@ -153,3 +155,45 @@ def loop_progress(i_track, i, n_max, n_steps, name=None, acronym=' '):
 
 def eucledian_distance(a, b):
     return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+
+
+def write_pickle(obj, path, cout=True):
+    """ write an object to pickle
+
+    arguments:
+    obj:    object to be written
+    path:   path to which the object is written
+    """
+
+    with open(path, 'wb') as output:  # overwrites
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+    if cout:
+        print('Pickle written to [ ' + path + ' ].')
+
+
+def read_pickle(path, cout=True):
+    """ read a pickle to an object
+
+    arguments:
+    path:   path to the pickle
+    """
+
+    if os.path.exists(path):
+        # load vitals pickle
+        try:
+            with open(path, 'rb') as input:
+                obj = pickle.load(input)
+            if cout:
+                print('Pickle read from [ ' + path + ' ].')
+            return obj
+        except ValueError:
+            print('\nCould not load pickle. Try other python 3.x')
+        except UnicodeDecodeError:
+            print('\nCould not load pickle. Try other python 2.x')
+        except FileNotFoundError:
+            print('\nCould not find any vitals pickle file.')
+    else:
+        print('\nCould not find pickle at [ ' + path + ' ]')
+    print('Terminating...\n')
+    sys.exit()
+
