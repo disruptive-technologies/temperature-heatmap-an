@@ -863,18 +863,11 @@ class Director():
         # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
         pc.set_clim(self.t_range[0], self.t_range[1])
 
-        if 0:
-            self.hfig.set_figheight(self.ylim[1] - self.ylim[0])
-            self.hfig.set_figwidth(self.xlim[1] - self.xlim[0])
-            out = '/home/kepler/tmp/'
-            self.hfig.savefig(out + '{:09d}.png'.format(self.cc), dpi=100, bbox_inches='tight')
-            self.cc += 1
+        # lock aspect
+        plt.gca().set_aspect('equal', adjustable='box')
+        
+        if blocking:
+            plt.waitforbuttonpress()
         else:
-            # lock aspect
-            plt.gca().set_aspect('equal', adjustable='box')
-
-            if blocking:
-                plt.waitforbuttonpress()
-            else:
-                plt.pause(0.01)
+            plt.pause(0.01)
 
