@@ -25,6 +25,29 @@ class Director():
     """
 
     def __init__(self, username, password, project_id, api_url_base, t_range=[0, 40], resolution=5, cache_dir='/tmp/', pickle_id='hmap_'):
+        """
+        Initialise Director class.
+
+        Parameters
+        ----------
+        username : str
+            DT Studio service account key.
+        password : str
+            DT Studio service account secret.
+        project_id : str
+            DT Studio project identifier.
+        api_url_base : str
+            Endpoint for API.
+        t_range : [float, float]
+            Temperature range [min, max] used in visualization.
+        resolution : int
+            Number of points per meter in heatmap grid.
+        cache_dir : str
+            Absolute path to directory used for caching distance maps.
+        pickle_id : str
+            Identifier used for files cached in cache_dir.
+
+        """
         # give to self
         self.username     = username
         self.password     = password
@@ -104,12 +127,11 @@ class Director():
             self.fetch_history = True
 
 
-
-        # set filters for fetching data
-        self.__set_filters()
-
-
     def __set_bounding_box(self):
+        """
+        Set grid dimension limits based on layout corners.
+
+        """
         # find limits for x- and y-axis
         self.xlim = [0, 0]
         self.ylim = [0, 0]
@@ -130,6 +152,11 @@ class Director():
 
 
     def __generate_meshgrid(self):
+        """
+        Generate an interpolated grid based on bounding box and provided resolution.
+
+        """
+
         # generate interpolation axes
         self.x_interp = np.linspace(self.xlim[0], self.xlim[1], int(self.resolution*(self.xlim[1]-self.xlim[0])+0.5))
         self.y_interp = np.linspace(self.ylim[0], self.ylim[1], int(self.resolution*(self.ylim[1]-self.ylim[0])+0.5))
@@ -139,6 +166,11 @@ class Director():
 
 
     def __eucledian_map_debug(self):
+        """
+        Generate eucledian distance map on a per-sensor basis for debugging purposes.
+
+        """
+
         # iterate sensors
         for i, sensor in enumerate(self.sensors):
             # reset corner distances
@@ -176,7 +208,26 @@ class Director():
 
 
     def __eucledian_map_threaded(self):
+        """
+        Generate eucledian distance map for each sensor.
+        Applies multiprocessing for a significant reduction in execution time.
+
+        """
+
         def map_process(sensor, i):
+            """
+            Same as __eucledian_map_threaded() but must be isolated in a function for multiprocessing.
+            Writes populated distance maps to cache_dir so that we only have to do this once. It's slow.
+
+            Parameters
+            ----------
+            sensor : object
+                Sensor object with coordinates and temperature information.
+            i : int
+                Sensor number in list.
+
+            """
+
             # reset corner distances
             for corner in self.corners:
                 corner.shortest_distance = None
@@ -231,6 +282,12 @@ class Director():
 
 
     def __get_cached_sensors(self):
+        """
+        Exchange self.sensors with sensors cached in cache_dir.
+        Usually called to recover previously calculated distance maps.
+
+        """
+
         # get files in cache
         cache_files = os.listdir(self.cache_dir)
 
@@ -244,7 +301,8 @@ class Director():
                 # look for correct pickle
                 if self.pickle_id + '{}.pkl'.format(i) in f and not found:
                     # read pickle
-                    pickle_sensor = hlp.read_pickle(os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i)), cout=True)
+                    pickle_path = os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i))
+                    pickle_sensor = hlp.read_pickle(pickle_path, cout=True)
 
                     # exchange
                     # sensors.append(pickle_sensor)
@@ -255,10 +313,27 @@ class Director():
 
             # shouldn't happen, but just in case
             if not found:
-                hlp.print_error('Pickle #{} has gone missing.'.format(i), terminate=True)
+                hlp.print_error('Pickle at [{}] does not exist.'.format(pickle_path), terminate=True)
 
 
     def __populate_grid(self, D, corner):
+        """
+        Scan matrix and populate with eucledian distance for cells in line of sight of corner.
+
+        Parameters
+        ----------
+        D : 2d ndarray
+            Matrix to be populated.
+        corner : object
+            Corner Point object for which we check line of sight.
+
+        Returns
+        -------
+        D : 2d ndarray
+            Populated matrix.
+
+        """
+
         # iterate x- and y-axis axis
         for x, gx in enumerate(self.x_interp):
             for y, gy in enumerate(self.y_interp):
@@ -266,7 +341,7 @@ class Director():
                 node = hlp.Point(self.x_interp[x], self.y_interp[y])
 
                 # get distance from corner to node if in line of sight
-                d = self.__pathfind(corner, node)
+                d = self.__los_check(corner, node)
 
                 # update map if d is a valid value
                 if d != None:
@@ -280,7 +355,25 @@ class Director():
         return D
 
 
-    def __pathfind(self, start, goal):
+    def __los_check(self, start, goal):
+        """
+        Check if start has line of sight (LOS) to goal.
+
+        Parameters
+        ----------
+        start : object
+            Point object used as point of view.
+        goal : object
+            Point object we check if we have LOS to.
+
+        Returns
+        -------
+        return : float
+            Returns eucledian distance from start to goal if LOS is True.
+            Returns None if no LOS.
+
+        """
+
         # draw a straight line
         straight = hlp.Line(start, goal)
 
@@ -299,6 +392,26 @@ class Director():
 
 
     def __find_shortest_paths(self, active, path, dr):
+        """
+        Recursive function for finding shortest path from sensor to every convex corner in layout.
+        Is essential a wide-first search, but runtime is quite quick as only minor things are checked each time.
+
+        Parameters
+        ----------
+        active : object
+            Point object of current sensor or corner path is found for.
+        path : list
+            List of xy-coordinates of previous jumps.
+        dr : float
+            Distance we have already traveled at previous jumps to get here.
+
+        Returns
+        -------
+        path : list
+            List of xy-coordinates of previous and current jump.
+
+        """
+
         # append path with active node
         path.append([active.x, active.y])
 
@@ -354,6 +467,25 @@ class Director():
 
 
     def __validate_corner(self, origin, corner):
+        """
+        Perform a series of checks for if a corner should be used to find shortest path.
+        Essentially skip concave and no LOS corners.
+
+        Parameters
+        ----------
+        origin : object
+            Point object representing where we currently stand and have point of view.
+        corner : object
+            Corner Point object to be validated.
+
+        Returns
+        -------
+        return : bool
+            Returns True if all checks are passed.
+            Returns False if a single check fails.
+
+        """
+
         # skip if more than 2 branches
         if len(corner.walls) > 2 or len(corner.walls) == 0:
             return False
