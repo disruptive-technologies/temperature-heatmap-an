@@ -823,15 +823,8 @@ class Director():
                     yy = [path[i-1][1], path[i][1]]
                     self.ax.plot(xx, yy, '.-r')
 
-        if 0:
-            self.fig.set_figheight(self.ylim[1] - self.ylim[0])
-            self.fig.set_figwidth(self.xlim[1] - self.xlim[0])
-            out = '/home/kepler/tmp/'
-            self.fig.savefig(out + '{:09d}.png'.format(self.cc), dpi=100, bbox_inches='tight')
-            self.cc += 1
-        else:
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.waitforbuttonpress()
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.waitforbuttonpress()
 
 
     def initialise_heatmap_plot(self):
