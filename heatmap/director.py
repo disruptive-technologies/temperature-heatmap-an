@@ -1,9 +1,11 @@
 # packages
 import os
 import sys
+import json
 import requests
 import datetime
 import argparse
+import sseclient
 import numpy           as np
 import multiprocessing as mpr
 
@@ -539,35 +541,6 @@ class Director():
         self.n_sensors = len(self.sensors)
 
 
-    def __update_heatmap(self):
-        # iterate x- and y-axis axis
-        for x, gx in enumerate(self.x_interp):
-            for y, gy in enumerate(self.y_interp):
-                # reset lists
-                temperatures = []
-                distances    = []
-
-                # iterate sensors
-                for sensor in self.sensors:
-                    # check if distance grid is valid here
-                    if sensor.D[y, x] > 0:
-                        temperatures.append(sensor.t)
-                        distances.append(sensor.D[y, x])
-
-                # do nothing if no valid distances
-                if len(distances) == 0:
-                    self.heatmap[y, x] = None
-                elif len(distances) == 1:
-                    self.heatmap[y, x] = temperatures[0]
-                else:
-                    # calculate weighted average
-                    weights = (1/(np.array(distances)))**2
-                    temperatures = np.array(temperatures)
-                    
-                    # update mesh
-                    self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
-
-
     def __set_filters(self):
         """
         Set filters for data fetched through API.
@@ -653,26 +626,52 @@ class Director():
                 if source_id == sensor.identifier:
                     # give data to room
                     sensor.new_event_data(event_data)
+                    if cout: print('-- New Event for {}.'.format(source_id))
+                    return True
+        return False
 
-            # get event time in unixtime
-            update_time = event_data['data']['temperature']['updateTime']
-            _, unixtime = hlp.convert_event_data_timestamp(update_time)
 
-            # check timer
-            if self.last_update < 0:
-                # update time to this event time
-                self.last_update = unixtime
-            elif unixtime - self.last_update > self.args['timestep']:
-                # update timer to this event time
-                self.last_update = unixtime
+    def __check_timestep(self, unixtime):
+        # check time since last update
+        if self.last_update < 0:
+            # update time to this event time
+            self.last_update = unixtime
+            return False
 
-                # plot if set
-                if self.args['plot']:
-                    # update heatmap
-                    self.__update_heatmap()
+        elif unixtime - self.last_update > self.args['timestep']:
+            # update timer to this event time
+            self.last_update = unixtime
 
-                    # show plot
-                    self.plot_heatmap(update_time=update_time, blocking=True)
+            return True
+
+
+    def update_heatmap(self):
+        # iterate x- and y-axis axis
+        for x, gx in enumerate(self.x_interp):
+            for y, gy in enumerate(self.y_interp):
+                # reset lists
+                temperatures = []
+                distances    = []
+
+                # iterate sensors
+                for sensor in self.sensors:
+                    # check if distance grid is valid here
+                    if sensor.D[y, x] > 0 and sensor.t != None:
+                        temperatures.append(sensor.t)
+                        distances.append(sensor.D[y, x])
+
+                # do nothing if no valid distances
+                if len(distances) == 0:
+                    self.heatmap[y, x] = None
+                elif len(distances) == 1:
+                    self.heatmap[y, x] = temperatures[0]
+                else:
+                    # calculate weighted average
+                    weights = (1/(np.array(distances)))**2
+                    temperatures = np.array(temperatures)
+                    
+                    # update mesh
+                    self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
 
 
     def run_history(self):
@@ -693,7 +692,87 @@ class Director():
         for i, event_data in enumerate(self.event_history):
             cc = hlp.loop_progress(cc, i, len(self.event_history), 25, name='event history')
             # serve event to director
-            self.__new_event_data(event_data, cout=False)
+            _ = self.__new_event_data(event_data, cout=False)
+
+            # get event time in unixtime
+            update_time = event_data['data']['temperature']['updateTime']
+            _, unixtime = hlp.convert_event_data_timestamp(update_time)
+
+            # plot if timestep has passed
+            if self.__check_timestep(unixtime):
+                # update heatmap
+                self.update_heatmap()
+
+                # plot
+                self.plot_heatmap(update_time=update_time, blocking=True)
+
+
+    def run_stream(self, n_reconnects=5):
+        """
+        Update heatmap for realtime stream data from sensors.
+
+        Parameters
+        ----------
+        n_reconnects : int
+            Number of reconnection attempts at disconnect.
+
+        """
+
+        # cout
+        print("Listening for events... (press CTRL-C to abort)")
+
+    
+        # initial plot
+        if self.args['plot']:
+            # initialise heatmap
+            self.update_heatmap()
+
+            # plot
+            self.plot_heatmap(update_time='t0', blocking=False)
+    
+        # loop indefinetly
+        nth_reconnect = 0
+        while nth_reconnect < n_reconnects:
+            try:
+                # reset reconnect counter
+                nth_reconnect = 0
+        
+                # get response
+                response = requests.get(self.stream_endpoint, auth=(self.username, self.password), headers={'accept':'text/event-stream'}, stream=True, params=self.stream_params)
+                client = sseclient.SSEClient(response)
+        
+                # listen for events
+                print('Connected.')
+                for event in client.events():
+                    # new data received
+                    event_data = json.loads(event.data)['result']['event']
+        
+                    # serve event to director
+                    served = self.__new_event_data(event_data, cout=True)
+
+                    # plot progress
+                    if served and self.args['plot']:
+                        # get event time in unixtime
+                        update_time = event_data['data']['temperature']['updateTime']
+                        _, unixtime = hlp.convert_event_data_timestamp(update_time)
+
+                        # update heatmap
+                        self.update_heatmap()
+
+                        # Plot
+                        self.plot_heatmap(update_time=update_time, blocking=False)
+            
+            # catch errors
+            # Note: Some VPNs seem to cause quite a lot of packet corruption (?)
+            except requests.exceptions.ConnectionError:
+                nth_reconnect += 1
+                print('Connection lost, reconnection attempt {}/{}'.format(nth_reconnect, n_reconnects))
+            except requests.exceptions.ChunkedEncodingError:
+                nth_reconnect += 1
+                print('An error occured, reconnection attempt {}/{}'.format(nth_reconnect, n_reconnects))
+            
+            # wait 1s before attempting to reconnect
+            time.sleep(1)
 
 
     def initialise_debug_plot(self):
@@ -701,8 +780,8 @@ class Director():
 
 
     def plot_debug(self, start=None, goal=None, lines=None, grid=None, candidates=None, paths=None):
-        # initialise if not
-        if not hasattr(self, 'ax'):
+        # initialise if if not open
+        if not hasattr(self, 'ax') or not plt.fignum_exists(self.fig.number):
             self.initialise_debug_plot()
 
         # clear
@@ -744,15 +823,8 @@ class Director():
                     yy = [path[i-1][1], path[i][1]]
                     self.ax.plot(xx, yy, '.-r')
 
-        if 0:
-            self.fig.set_figheight(self.ylim[1] - self.ylim[0])
-            self.fig.set_figwidth(self.xlim[1] - self.xlim[0])
-            out = '/home/kepler/tmp/'
-            self.fig.savefig(out + '{:09d}.png'.format(self.cc), dpi=100, bbox_inches='tight')
-            self.cc += 1
-        else:
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.waitforbuttonpress()
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.waitforbuttonpress()
 
 
     def initialise_heatmap_plot(self):
@@ -761,8 +833,8 @@ class Director():
 
 
     def plot_heatmap(self, update_time='', blocking=True):
-        # initialise if not
-        if not hasattr(self, 'hax'):
+        # initialise if not open
+        if not hasattr(self, 'hax') or not plt.fignum_exists(self.hfig.number):
             self.initialise_heatmap_plot()
 
         # clear
@@ -779,15 +851,14 @@ class Director():
         for sensor in self.sensors:
             self.hax.plot(sensor.p.x, sensor.p.y, 'ok', markersize=10)
 
-
         # draw heatmap
-        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cmap)
-        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
         pc.set_clim(self.t_range[0], self.t_range[1])
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
-
+        
         if blocking:
             plt.waitforbuttonpress()
         else:
