@@ -1,58 +1,48 @@
 # packages
 import os
 import sys
-import requests
-import datetime
 import argparse
-import numpy           as np
+import numpy             as np
+import matplotlib.pyplot as plt
+
+# colormaps
+from matplotlib        import cm
+from matplotlib.colors import Normalize
+tlim = [18, 27]
+cmap = cm.jet
+
+# mutlithreading
 import multiprocessing as mpr
 
-# plotting
-import matplotlib.pyplot as plt
-from matplotlib          import cm
-from matplotlib.colors   import Normalize
+# project pathing
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-# project
-import heatmap.helpers   as hlp
-import config.layout     as layout
+# import layout
+from config.layout import corners
+from config.layout import walls
+from config.layout import sensors
+
+# project imports
+import heatmap.helpers as hlp
+
+# pathing
+pickle_identifier = 'heatmap_'
+cache_dir = '/tmp/'
 
 
 class Director():
-    """
-
-    """
-
-    def __init__(self, username, password, project_id, api_url_base, t_range=[0, 40], resolution=5, cache_dir='/tmp/', pickle_id='hmap_'):
+    def __init__(self, corners, walls, sensors, resolution):
         # give to self
-        self.username     = username
-        self.password     = password
-        self.project_id   = project_id
-        self.api_url_base = api_url_base
-        self.t_range      = t_range
-        self.resolution   = resolution
-        self.cache_dir    = cache_dir
-        self.pickle_id    = pickle_id
-
-        # variables
-        self.last_update = -1
+        self.corners    = corners
+        self.walls      = walls
+        self.sensors    = sensors
+        self.resolution = resolution
+        self.n_sensors  = len(sensors)
         self.cc = 0
-
-        # set stream endpoint
-        self.stream_endpoint = "{}/projects/{}/devices:stream".format(self.api_url_base, self.project_id)
+        self.dd = 0
 
         # parse system arguments
         self.__parse_sysargs()
-
-        # adopt layout
-        self.corners = layout.corners
-        self.walls   = layout.walls
-        self.sensors = layout.sensors
-
-        # get sensors in project
-        self.__fetch_project_sensors()
-
-        # set filters for fetching data
-        self.__set_filters()
 
         # get limits for x- and y- axes
         self.__set_bounding_box()
@@ -69,6 +59,10 @@ class Director():
         else:
             self.__eucledian_map_threaded()
 
+        # Plot results
+        # for sensor in self.sensors:
+        #     self.plot(start=sensor.p, grid=[sensor.D])
+
 
     def __parse_sysargs(self):
         """
@@ -77,34 +71,17 @@ class Director():
         """
 
         # create parser object
-        parser = argparse.ArgumentParser(description='Desk Occupancy Estimation on Stream and Event History.')
-
-        # get UTC time now
-        now = (datetime.datetime.utcnow().replace(microsecond=0)).isoformat() + 'Z'
+        parser = argparse.ArgumentParser(description='Some explanatory text here.')
 
         # general arguments
-        parser.add_argument('--starttime', metavar='', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
-        parser.add_argument('--endtime',   metavar='', help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
-        parser.add_argument('--timestep',  metavar='', help='Heatmap update period.', required=False, default=3600, type=int)
+        # parser.add_argument('--timestep',  metavar='', help='Heatmap update period.', required=False, default=3600, type=int)
 
         # boolean flags
-        parser.add_argument('--plot',  action='store_true', help='Plot the estimated desk occupancy.')
-        parser.add_argument('--debug', action='store_true', help='Disables multithreading for debug visualization.')
-        parser.add_argument('--read',  action='store_true', help='Import cached distance maps.')
+        parser.add_argument('--debug', action='store_true', help='Turns off things like multithreading for easier access.')
+        parser.add_argument('--read',  action='store_true', help='Read cached distance maps.')
 
         # convert to dictionary
         self.args = vars(parser.parse_args())
-
-        # set history flag
-        if now == self.args['starttime']:
-            self.fetch_history = False
-        else:
-            self.fetch_history = True
-
-
-
-        # set filters for fetching data
-        self.__set_filters()
 
 
     def __set_bounding_box(self):
@@ -122,8 +99,6 @@ class Director():
                 self.ylim[1] = c.y
         self.xlim = [int(np.floor(self.xlim[0])), int(np.ceil(self.xlim[1]))]
         self.ylim = [int(np.floor(self.ylim[0])), int(np.ceil(self.ylim[1]))]
-
-        # set maximum dimension for any axis
         self.maxdim = max(self.xlim[1]-self.xlim[0], self.ylim[1]-self.ylim[0])
 
 
@@ -140,7 +115,7 @@ class Director():
         # iterate sensors
         for i, sensor in enumerate(self.sensors):
             # reset corner distances
-            for corner in self.corners:
+            for corner in corners:
                 corner.shortest_distance = None
                 corner.shortest_path     = []
 
@@ -155,28 +130,27 @@ class Director():
             sensor.D = self.__populate_grid(sensor.D, sensor.p)
 
             # plot population process
-            if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+            if 1:
+                self.plot(start=sensor.p, grid=[sensor.D])
 
             # populate grid with distances from each corner
-            for ci, corner in enumerate(self.corners):
+            for ci, corner in enumerate(corners):
                 if len(corner.shortest_path) > 0:
                     print('sensor {}, corner {}'.format(i, ci))
                     sensor.D = self.__populate_grid(sensor.D, corner)
 
                     # plot population process
-                    if 0:
-                        self.plot_debug(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
+                    if 1:
+                        self.plot(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
 
             # plot population result
-            if 1:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+            self.plot(start=sensor.p, grid=[sensor.D])
 
 
     def __eucledian_map_threaded(self):
         def map_process(sensor, i):
             # reset corner distances
-            for corner in self.corners:
+            for corner in corners:
                 corner.shortest_distance = None
                 corner.shortest_path     = []
         
@@ -191,13 +165,13 @@ class Director():
             sensor.D = self.__populate_grid(sensor.D, sensor.p)
         
             # populate grid with distances from each corner
-            for ci, corner in enumerate(self.corners):
+            for ci, corner in enumerate(corners):
                 if len(corner.shortest_path) > 0:
                     print('Populating map for sensor {} at corner {}.'.format(i, ci))
                     sensor.D = self.__populate_grid(sensor.D, corner)
 
             # write sensor object to pickle
-            hlp.write_pickle(sensor, os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i)), cout=True)
+            hlp.write_pickle(sensor, os.path.join(cache_dir, pickle_identifier + '{}.pkl'.format(i)), cout=True)
 
         # just skip everything and read from cache if so desired
         if self.args['read']:
@@ -230,7 +204,7 @@ class Director():
 
     def __get_cached_sensors(self):
         # get files in cache
-        cache_files = os.listdir(self.cache_dir)
+        cache_files = os.listdir(cache_dir)
 
         # iterate sensors
         for i in range(self.n_sensors):
@@ -240,9 +214,9 @@ class Director():
             # iterate files in cache
             for f in cache_files:
                 # look for correct pickle
-                if self.pickle_id + '{}.pkl'.format(i) in f and not found:
+                if pickle_identifier + '{}.pkl'.format(i) in f and not found:
                     # read pickle
-                    pickle_sensor = hlp.read_pickle(os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i)), cout=True)
+                    pickle_sensor = hlp.read_pickle(os.path.join(cache_dir, pickle_identifier + '{}.pkl'.format(i)), cout=True)
 
                     # exchange
                     # sensors.append(pickle_sensor)
@@ -254,6 +228,62 @@ class Director():
             # shouldn't happen, but just in case
             if not found:
                 hlp.print_error('Pickle #{} has gone missing.'.format(i), terminate=True)
+
+
+    def __find_shortest_paths(self, active, path, dr):
+        # append path with active node
+        path.append([active.x, active.y])
+
+        # stop if we've been here before on a shorter path
+        if active.shortest_distance != None and dr > active.shortest_distance:
+            return path
+        
+        # as this is currently the sortest path from sensor to active, copy it to active
+        active.shortest_distance = dr
+        active.shortest_path = [p for p in path]
+
+        # path search plot
+        if 0:
+            self.plot(start=active, paths=[path] + [c.shortest_path for c in corners])
+
+        # find candidate corners for path expansion
+        candidates = []
+
+        # nudge in convex directions
+        for dx, dy in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
+            # create offset point
+            m = 1000
+            offset = hlp.Point(active.x+dx/m, active.y+dy/m)
+
+            # validate nudge is convex
+            if not self.__is_concave(offset, active):
+                for corner in corners:
+                    # skip used
+                    if corner.unused:
+                        # validate corner
+                        ddr = self.eucledian_distance(active.x, active.y, corner.x, corner.y)
+                        if corner.shortest_distance == None or dr + ddr < corner.shortest_distance:
+                            if self.__validate_corner(offset, corner):
+                                candidates.append(corner)
+                                corner.unused = False
+
+        if 0:
+            # plot
+            self.plot(start=active, candidates=candidates, paths=[path])
+
+        # recursively iterate candidates
+        for c in candidates:
+            # calculate distance to candidate
+            ddr = self.eucledian_distance(active.x, active.y, c.x, c.y)
+
+            # recursive
+            self.dd += 1
+            path = self.__find_shortest_paths(c, path, dr+ddr)
+            path.pop()
+        for c in candidates:
+            c.unused = True
+
+        return path
 
 
     def __populate_grid(self, D, corner):
@@ -286,69 +316,14 @@ class Director():
         los = True
         for wall in self.walls:
             if start not in wall.pp:
-                if self.__line_intersects(start, goal, wall.p1, wall.p2):
+                if self.line_intersects(start, goal, wall.p1, wall.p2):
                     los = False
                 # concave check
                 elif len(start.walls) == 2 and self.__is_concave(goal, start):
                     los = False
         if los:
-            return hlp.eucledian_distance(start.x, start.y, goal.x, goal.y)
+            return self.eucledian_distance(start.x, start.y, goal.x, goal.y)
         return None
-
-
-    def __find_shortest_paths(self, active, path, dr):
-        # append path with active node
-        path.append([active.x, active.y])
-
-        # stop if we've been here before on a shorter path
-        if active.shortest_distance != None and dr > active.shortest_distance:
-            return path
-        
-        # as this is currently the sortest path from sensor to active, copy it to active
-        active.shortest_distance = dr
-        active.shortest_path = [p for p in path]
-
-        # path search plot
-        if 0:
-            self.plot(start=active, paths=[path] + [c.shortest_path for c in corners])
-
-        # find candidate corners for path expansion
-        candidates = []
-
-        # nudge in convex directions
-        for dx, dy in zip([-1, 1, 0, 0], [0, 0, -1, 1]):
-            # create offset point
-            m = 1000
-            offset = hlp.Point(active.x+dx/m, active.y+dy/m)
-
-            # validate nudge is convex
-            if not self.__is_concave(offset, active):
-                for corner in self.corners:
-                    # skip used
-                    if corner.unused:
-                        # validate corner
-                        ddr = hlp.eucledian_distance(active.x, active.y, corner.x, corner.y)
-                        if corner.shortest_distance == None or dr + ddr < corner.shortest_distance:
-                            if self.__validate_corner(offset, corner):
-                                candidates.append(corner)
-                                corner.unused = False
-
-        if 0:
-            # plot
-            self.plot(start=active, candidates=candidates, paths=[path])
-
-        # recursively iterate candidates
-        for c in candidates:
-            # calculate distance to candidate
-            ddr = hlp.eucledian_distance(active.x, active.y, c.x, c.y)
-
-            # recursive
-            path = self.__find_shortest_paths(c, path, dr+ddr)
-            path.pop()
-        for c in candidates:
-            c.unused = True
-
-        return path
 
 
     def __validate_corner(self, origin, corner):
@@ -367,12 +342,19 @@ class Director():
         # skip is no los
         for wall in self.walls:
             if corner not in wall.pp and origin not in wall.pp:
-                if self.__line_intersects(origin, corner, wall.p1, wall.p2):
+                if self.line_intersects(origin, corner, wall.p1, wall.p2):
                     return False
         
         # passed
         return True
 
+
+    def __on_segment(self, p, q, r): 
+        if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
+               (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))): 
+            return True
+        return False
+  
 
     def __orientation(self, p, q, r): 
         # to find the orientation of an ordered triplet (p,q,r) 
@@ -399,14 +381,7 @@ class Director():
             return 0
 
 
-    def __on_segment(self, p, q, r): 
-        if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
-               (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))): 
-            return True
-        return False
-
-
-    def __line_intersects(self, p1,q1,p2,q2): 
+    def line_intersects(self, p1,q1,p2,q2): 
         # Find the 4 orientations required for  
         # the general and special cases 
         o1 = self.__orientation(p1, q1, p2) 
@@ -438,6 +413,10 @@ class Director():
       
         # If none of the cases 
         return False
+
+
+    def point_line_distance(self, p1, p2, p3):
+        return np.linalg.norm(np.cross([p2.x-p1.x, p2.y-p1.y], [p1.x-p3.x, p1.y-p3.y]))/np.linalg.norm([p2.x-p1.x, p2.y-p1.y])
 
 
     def __is_concave(self, node, point):
@@ -501,45 +480,11 @@ class Director():
         return bounded
 
 
-    def __fetch_project_sensors(self):
-        """
-        Fetch information about sensors in project from API.
-
-        """
-
-        # request list
-        devices_list_url = "{}/projects/{}/devices".format(self.api_url_base,  self.project_id)
-        device_listing = requests.get(devices_list_url, auth=(self.username, self.password))
-        
-        # check error code
-        if device_listing.status_code < 300:
-            # remove fluff
-            devices = device_listing.json()['devices']
-
-            # isolate id
-            project_sensors = [os.path.basename(device['name']) for device in devices]
-        else:
-            print(device_listing.json())
-            hlp.print_error('Status Code: {}'.format(device_listing.status_code), terminate=True)
-
-        # give devices in both project and rooms to self
-        validated_sensors = []
-
-        # iterate rooms
-        for sensor in self.sensors:
-            # iterate sensors in room
-            if sensor.identifier in project_sensors:
-                # save if in both parameters and project
-                validated_sensors.append(sensor)
-            else:
-                print('Sensor [{}] were not found in project. Skipping...'.format(sensor.identifier))
-
-        # keep only sensors both in project and layout
-        self.sensors   = validated_sensors
-        self.n_sensors = len(self.sensors)
+    def eucledian_distance(self, x1, y1, x2, y2):
+        return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
-    def __update_heatmap(self):
+    def update_heatmap(self):
         # iterate x- and y-axis axis
         for x, gx in enumerate(self.x_interp):
             for y, gy in enumerate(self.y_interp):
@@ -568,142 +513,19 @@ class Director():
                     self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
 
 
-    def __set_filters(self):
-        """
-        Set filters for data fetched through API.
-
-        """
-
-        # historic events
-        self.history_params = {
-            'page_size': 1000,
-            'start_time': self.args['starttime'],
-            'end_time': self.args['endtime'],
-            'event_types': ['temperature']
-        }
-
-        # stream events
-        self.stream_params = {
-            'event_types': ['temperature']
-        }
-
-
-    def __fetch_event_history(self):
-        """
-        For each sensor in project, request all events since --starttime from API.
-
-        """
-
-        # initialise empty event list
-        self.event_history = []
-
-        # iterate devices
-        for sensor in self.sensors:
-            # isolate id
-            sensor_id = sensor.identifier
-
-            # some printing
-            print('-- Getting event history for {}'.format(sensor_id))
-        
-            # initialise next page token
-            self.history_params['page_token'] = None
-        
-            # set endpoints for event history
-            event_list_url = "{}/projects/{}/devices/{}/events".format(self.api_url_base, self.project_id, sensor_id)
-        
-            # perform paging
-            while self.history_params['page_token'] != '':
-                event_listing = requests.get(event_list_url, auth=(self.username, self.password), params=self.history_params)
-                event_json = event_listing.json()
-
-                if event_listing.status_code < 300:
-                    self.history_params['page_token'] = event_json['nextPageToken']
-                    self.event_history += event_json['events']
-                else:
-                    print(event_json)
-                    hlp.print_error('Status Code: {}'.format(event_listing.status_code), terminate=True)
-        
-                if self.history_params['page_token'] is not '':
-                    print('\t-- paging')
-        
-        # sort event history in time
-        self.event_history.sort(key=hlp.json_sort_key, reverse=False)
-
-
-    def __new_event_data(self, event_data, cout=True):
-        """
-        Receive new event_data json and pass it along to the correct room instance.
-
-        Parameters
-        ----------
-        event_data : dictionary
-            Data json containing new event data.
-        cout : bool
-            Will print event information to console if True.
-
-        """
-
-        # get id of source sensor
-        source_id = os.path.basename(event_data['targetName'])
-
-        # verify temperature event
-        if 'temperature' in event_data['data'].keys():
-            # check if sensor is in this room
-            for sensor in self.sensors:
-                if source_id == sensor.identifier:
-                    # give data to room
-                    sensor.new_event_data(event_data)
-
-            # get event time in unixtime
-            update_time = event_data['data']['temperature']['updateTime']
-            _, unixtime = hlp.convert_event_data_timestamp(update_time)
-
-            # check timer
-            if self.last_update < 0:
-                # update time to this event time
-                self.last_update = unixtime
-            elif unixtime - self.last_update > self.args['timestep']:
-                # update timer to this event time
-                self.last_update = unixtime
-
-                # plot if set
-                if self.args['plot']:
-                    # update heatmap
-                    self.__update_heatmap()
-
-                    # show plot
-                    self.plot_heatmap(update_time=update_time, blocking=True)
-
-
-    def run_history(self):
-        """
-        Iterate through and calculate occupancy for event history.
-
-        """
-
-        # do nothing if starttime not given
-        if not self.fetch_history:
-            return
-
-        # get list of hsitoric events
-        self.__fetch_event_history()
-        
-        # estimate occupancy for history 
-        cc = 0
-        for i, event_data in enumerate(self.event_history):
-            cc = hlp.loop_progress(cc, i, len(self.event_history), 25, name='event history')
-            # serve event to director
-            self.__new_event_data(event_data, cout=False)
-
-
-    def initialise_debug_plot(self):
+    def initialise_plot(self):
         self.fig, self.ax = plt.subplots()
 
 
-    def plot_debug(self, start=None, goal=None, lines=None, grid=None, candidates=None, paths=None):
+    def initialise_heatmap_plot(self):
+        self.hfig, self.hax = plt.subplots()
+        self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=tlim[0], vmax=tlim[1]), cmap=cmap))
+
+
+    def plot(self, start=None, goal=None, lines=None, grid=None, candidates=None, paths=None):
         # initialise if not
         if not hasattr(self, 'ax'):
-            self.initialise_debug_plot()
+            self.initialise_plot()
 
         # clear
         self.ax.clear()
@@ -755,21 +577,13 @@ class Director():
             plt.waitforbuttonpress()
 
 
-    def initialise_heatmap_plot(self):
-        self.hfig, self.hax = plt.subplots()
-        self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=self.t_range[0], vmax=self.t_range[1]), cmap=cm.jet))
-
-
-    def plot_heatmap(self, update_time='', blocking=True):
+    def plot_heatmap(self, blocking=True):
         # initialise if not
         if not hasattr(self, 'hax'):
             self.initialise_heatmap_plot()
 
         # clear
         self.hax.clear()
-
-        # set title
-        self.hax.set_title(update_time)
 
         # draw walls
         for wall in self.walls:
@@ -781,15 +595,23 @@ class Director():
 
 
         # draw heatmap
-        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cmap)
-        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
-        pc.set_clim(self.t_range[0], self.t_range[1])
-
-        # lock aspect
-        plt.gca().set_aspect('equal', adjustable='box')
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, tlim[1]-tlim[0], cmap=cmap)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cmap)
+        pc.set_clim(tlim[0], tlim[1])
 
         if blocking:
-            plt.waitforbuttonpress()
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.show()
         else:
-            plt.pause(0.01)
+            plt.gca().set_aspect('equal', adjustable='box')
+            plt.waitforbuttonpress()
+
+
+if __name__ == '__main__':
+    # initialise director
+    d = Director(corners, walls, sensors, resolution=5)
+
+    d.update_heatmap()
+
+    d.plot_heatmap()
 
