@@ -19,5 +19,5 @@ if __name__ == '__main__':
     d.run_history()
 
     # stream realtime events
-    # d.run_stream(n_reconnects=5)
+    d.run_stream(n_reconnects=5)
 
