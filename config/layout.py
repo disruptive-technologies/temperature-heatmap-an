@@ -91,18 +91,18 @@ walls = [
 
 # sensors
 sensors = [
-    Sensor(Point( 8.0,  0.5), t=24), #  1
-    Sensor(Point(12.5,  3.5), t=23), #  2
-    Sensor(Point(11.1,  7.5), t=24), #  3
-    Sensor(Point(15.5,  0.5), t=23), #  4
-    Sensor(Point(20.5,  3.5), t=22), #  5
-    Sensor(Point(18.5,  5.9), t=20), #  6
-    Sensor(Point(24.0,  4.1), t=23), #  7
-    Sensor(Point(25.5,  0.3), t=27), #  8
-    Sensor(Point(27.9,  7.0), t=22), #  9
-    Sensor(Point(30.6,  2.0), t=24), # 10
-    Sensor(Point(35.4,  3.0), t=21), # 11
-    Sensor(Point(30.5,  8.4), t=21), # 12
+    Sensor(Point( 8.0,  0.5), identifier='bjeho0fbluqg00dltg30', t=24), #  1
+    Sensor(Point(12.5,  3.5), identifier='bddch957rihjnq7k1iu0', t=23), #  2
+    Sensor(Point(11.1,  7.5), identifier='bjei8odntbig00e43gr0', t=24), #  3
+    Sensor(Point(15.5,  0.5), identifier='bjeho0fbluqg00dltg30', t=23), #  4
+    Sensor(Point(20.5,  3.5), identifier='bddch9d7rihjnq7k1mq0', t=22), #  5
+    Sensor(Point(18.5,  5.9), identifier='bjejnvgpismg008hqrrg', t=20), #  6
+    Sensor(Point(24.0,  4.1), identifier='bjei5c67kro000cp0j20', t=23), #  7
+    Sensor(Point(25.5,  0.3), identifier='bjei71tp0jt000aqc78g', t=27), #  8
+    Sensor(Point(27.9,  7.0), identifier='bjei8nvbluqg00dltl20', t=22), #  9
+    Sensor(Point(30.6,  2.0), identifier='bjei50vbluqg00dltju0', t=24), # 10
+    Sensor(Point(35.4,  3.0), identifier='bjei8rgpismg008hqdu0', t=21), # 11
+    Sensor(Point(30.5,  8.4), identifier='bjei75vbluqg00dltkig', t=21), # 12
 ]
 
 # sensors = [

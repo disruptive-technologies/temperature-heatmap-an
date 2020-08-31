@@ -43,14 +43,20 @@ class Line():
 
 
 class Sensor():
-    def __init__(self, p, t=None):
+    def __init__(self, p, identifier='', t=None):
         # give to self
         self.p = p
+        self.identifier = identifier
         self.t = t
         
         # extract x- and y- coordinate
         self.x = p.x
         self.y = p.y
+
+
+    def new_event_data(self, event):
+        # update temperature
+        self.t = event['data']['temperature']['value']
 
 
 def print_error(text, terminate=True):
@@ -153,8 +159,8 @@ def loop_progress(i_track, i, n_max, n_steps, name=None, acronym=' '):
     return i_track
 
 
-def eucledian_distance(a, b):
-    return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+def eucledian_distance(x1, y1, x2, y2):
+    return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
 def write_pickle(obj, path, cout=True):
