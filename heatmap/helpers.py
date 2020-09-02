@@ -24,8 +24,9 @@ class Point():
         # give to self
         self.x = x
         self.y = y
-        self.dx = x
-        self.dy = y
+        self.dx = 0
+        self.dy = 0
+        self.dmin = None
 
 
 class Line():
@@ -43,7 +44,6 @@ class Corner(Point):
         Point.__init__(self, x, y)
 
         # variables
-        self.dmin   = None
         self.unused = True
         self.shortest_path = []
 

@@ -210,18 +210,26 @@ class Director():
             # reset room corner distances
             for room in self.rooms:
                 for corner in room.corners:
-                    corner.dmin = np.inf
+                    corner.dmin = None
+                    corner.shortest_path = []
+                    corner.unused = True
+            for door in self.doors:
+                door.unused = True
+                for of in [door.o1, door.o2]:
+                    of.dmin = None
+                    of.shortest_path = []
 
             # recursively find shortest distance to all valid corners
             path = []
-            _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, dr=0, is_corner=False)
+            _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, dr=0)
 
             # initialise grid
             sensor.D = np.zeros(shape=self.X.shape)
 
             # populate map from sensor poitn of view
             sensor.D = self.__populate_grid(sensor.D, sensor.p, self.rooms[sensor.room_number])
-            self.plot_debug(start=sensor.p, grid=[sensor.D])
+            if 1:
+                self.plot_debug(start=sensor.p, grid=[sensor.D])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
@@ -232,30 +240,30 @@ class Director():
 
                         # plot population process
                         if 1:
-                            self.plot_debug(start=sensor.p, goals=[corner], grid=[sensor.D], paths=[corner.shortest_path])
+                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
 
                 for di, door in enumerate(self.doors):
                     print('room {}, sensor {}, door {}'.format(ri, i, di))
-                    for offset_node in [door.o1, door.o2]:
-                        if offset_node.dmin != None:
-                            if len(offset_node.shortest_path) > 0:
-                                sensor.D = self.__populate_grid(sensor.D, offset_node, room)
+                    if door.outbound_room == room:
+                        offset_node = door.outbound_offset
+                        if len(offset_node.shortest_path) > 0:
+                            sensor.D = self.__populate_grid(sensor.D, offset_node, room)
 
-                                # plot population process
-                                if 1:
-                                    self.plot_debug(start=sensor.p, goals=[offset_node], grid=[sensor.D], paths=[corner.shortest_path])
+                            # plot population process
+                            if 1:
+                                self.plot_debug(start=sensor.p, grid=[sensor.D], paths=offset_node.shortest_path)
 
             # plot population result
             if 1:
                 self.plot_debug(start=sensor.p, grid=[sensor.D])
 
 
-    def __find_shortest_paths(self, start, room, path, dr, is_corner):
+    def __find_shortest_paths(self, start, room, path, dr):
         # append path with active node
         path.append(start)
 
         # stop if we've been here before on a shorter path
-        if is_corner and start.dmin != None and dr > start.dmin:
+        if start.dmin != None and dr > start.dmin:
             return path
         
         # as this is currently the sortest path from sensor to active, copy it to active
@@ -276,7 +284,7 @@ class Director():
             ddr = hlp.eucledian_distance(start.x, start.y, c.x, c.y)
 
             # recursive
-            path = self.__find_shortest_paths(c, room, path, dr+ddr, is_corner=True)
+            path = self.__find_shortest_paths(c, room, path, dr+ddr)
             path.pop()
         for c in corner_candidates:
             c.unused = True
@@ -290,7 +298,7 @@ class Director():
             d.outbound_offset.dy = 0
 
             # recursive
-            path = self.__find_shortest_paths(d.outbound_offset, d.outbound_room, path, dr+ddr, is_corner=True)
+            path = self.__find_shortest_paths(d.outbound_offset, d.outbound_room, path, dr+ddr)
             path.pop()
 
         for d in door_candidates:
@@ -302,6 +310,10 @@ class Director():
     def __get_corner_candidates(self, start, room):
         # initialise list
         candidates = []
+
+        # reset start dx dy
+        # start.dx = 0
+        # start.dy = 0
 
         # iterate corners in room
         for i, corner in enumerate(room.corners):
@@ -519,6 +531,7 @@ class Director():
         if start != None:
             self.ax.plot(start.x, start.y, 'ok', markersize=10)
 
+        # draw paths
         if paths != None:
             for i in range(len(paths)-1):
                 p1 = paths[i]
@@ -536,6 +549,10 @@ class Director():
             plt.show()
         else:
             plt.waitforbuttonpress()
+
+
+
+
 
 
 class Director_():
