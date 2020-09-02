@@ -2,6 +2,8 @@
 import os
 import sys
 import json
+import math
+import random
 import requests
 import datetime
 import argparse
@@ -68,10 +70,13 @@ class Director():
         # parse system arguments
         self.__parse_sysargs()
 
-        # adopt layout
+        # deconstruct layout
+        self.__deconstruct_layout()
+        sys.exit()
         self.corners = layout.corners
         self.walls   = layout.walls
         self.sensors = layout.sensors
+        self.doors   = layout.doors
 
         # get sensors in project
         self.__fetch_project_sensors()
@@ -87,6 +92,9 @@ class Director():
 
         # spawn heatmap
         self.heatmap = np.zeros(shape=self.X.shape)
+
+        # define rooms
+        self.__define_rooms()
 
         # pre-calculate sensor distances in grid
         if self.args['debug']:
@@ -125,6 +133,18 @@ class Director():
             self.fetch_history = False
         else:
             self.fetch_history = True
+
+
+    def __deconstruct_layout(self):
+        # initialise lists
+        self.corners = []
+
+        # iterate rooms in layout
+        for ir, room in enumerate(layout.rooms):
+            # iterate corners
+            for c in room['corners']:
+                # append to self if not already existing
+                pass
 
 
     def __set_bounding_box(self):
@@ -179,14 +199,19 @@ class Director():
                 corner.shortest_path     = []
 
             # recursively find shortest path from sensor to all corners
-            path = []
-            self.__find_shortest_paths(sensor.p, path, dr=0)
+            path  = []
+            doors = []
+            self.__find_shortest_paths(sensor.p, path, doors, dr=0)
+
+            self.plot_debug(start=sensor.p, paths=[])
 
             # initialise grid
             sensor.D = np.zeros(shape=self.X.shape)
+            sensor.M = np.zeros(shape=self.X.shape)
+            sensor.R = np.zeros(shape=self.X.shape)
 
             # populate map from sensor poitn of view
-            sensor.D = self.__populate_grid(sensor.D, sensor.p)
+            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, sensor.p)
 
             # plot population process
             if 0:
@@ -196,15 +221,17 @@ class Director():
             for ci, corner in enumerate(self.corners):
                 if len(corner.shortest_path) > 0:
                     print('sensor {}, corner {}'.format(i, ci))
-                    sensor.D = self.__populate_grid(sensor.D, corner)
+                    sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, corner)
 
                     # plot population process
-                    if 0:
-                        self.plot_debug(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
+                    if 1:
+                        # self.plot_debug(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
+                        self.plot_debug(goal=corner, grid=[sensor.M*10], paths=[corner.shortest_path])
 
             # plot population result
             if 1:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+                # self.plot_debug(start=sensor.p, grid=[sensor.D])
+                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
 
 
     def __eucledian_map_threaded(self):
@@ -316,7 +343,7 @@ class Director():
                 hlp.print_error('Pickle at [{}] does not exist.'.format(pickle_path), terminate=True)
 
 
-    def __populate_grid(self, D, corner):
+    def __populate_grid(self, D, M, corner):
         """
         Scan matrix and populate with eucledian distance for cells in line of sight of corner.
 
@@ -345,6 +372,7 @@ class Director():
 
                 # update map if d is a valid value
                 if d != None:
+
                     # add distance from sensor to corner
                     d += corner.shortest_distance
 
@@ -352,7 +380,121 @@ class Director():
                     if D[y, x] == 0 or d < D[y, x]:
                         D[y, x] = d
 
-        return D
+                    # perform door los check
+                    # if len(corner.visited_doors) > 0 and not self.__door_los_check(node, corner, M):
+                    #     M[y, x] = len(corner.visited_doors)
+                        # else:
+                        #     M[y, x] = 0
+                        # M[y, x] = len(corner.visited_doors)
+
+        return D, M
+
+    
+    def __door_los_check(self, node, corner, M):
+        if len(corner.shortest_path) < 2:
+            return True
+
+        # los check
+        for door in self.doors:
+            if corner not in door.pp:
+                if self.__line_intersects(node, corner, door.p1, door.p2):
+                    return True
+
+        path = [node] + [corner.shortest_path[len(corner.shortest_path)-1-i] for i in range(len(corner.shortest_path))]
+
+        for i in range(len(path)-2):
+            found = False
+            for door in corner.visited_doors:
+                if path[i+1] in door.pp:
+                    inbound = path[i]
+                    center  = path[i+1]
+                    outbound = path[i+2]
+                    if outbound in door.pp:
+                        center = path[i+2]
+                        outbound = path[i+3]
+                    active_door = door
+                    found = True
+
+            if not found:
+                continue
+
+            if outbound.x == center.x:
+                eps = 1/1000
+                outbound.x += eps
+                if not self.__los_check(outbound, center):
+                    outbound.x -= eps*2
+            if outbound.y == center.y:
+                eps = 1/1000
+                outbound.y += eps
+                if not self.__los_check(outbound, center):
+                    outbound.y -= eps*2
+
+            # reset angles vector
+            angles = []
+
+            # find wall angles
+            for wall in center.walls:
+                wx = (wall.p1.x + wall.p2.x) / 2
+                wy = (wall.p1.y + wall.p2.y) / 2
+                angle = self.angle([center.x+1, center.y], [center.x, center.y], [wx, wy])
+                angles.append(angle)
+
+            # find door angles
+            wx = (active_door.p1.x + active_door.p2.x) / 2
+            wy = (active_door.p1.y + active_door.p2.y) / 2
+            angle = self.angle([center.x+1, center.y], [center.x, center.y], [wx, wy])
+            angles.append(angle)
+
+            angles = np.array(angles)
+
+            # get bound angles
+            inbound_angle  = self.angle([center.x+1, center.y], [center.x, center.y], [inbound.x, inbound.y])
+            outbound_angle = self.angle([center.x+1, center.y], [center.x, center.y], [outbound.x, outbound.y])
+
+            amax = max([inbound_angle, outbound_angle])
+            amin = min([inbound_angle, outbound_angle])
+
+            # check angles
+            los = False
+            if len(angles[(angles <= amax) & (angles >= amin)]) == 0:
+                los = True
+            elif len(angles[angles > amax]) == 0:
+                if len(angles[angles < amin]) == 0:
+                    los = True
+
+            if 0:
+                plt.cla()
+                print(angles)
+                print('In:  {}'.format(inbound_angle))
+                print('Out: {}'.format(outbound_angle))
+                print('LOS: {}'.format(los))
+                print()
+
+                # draw walls
+                for wall in self.walls:
+                    plt.plot(wall.xx, wall.yy, '-k', linewidth=3)
+
+                pc = plt.contourf(self.X.T, self.Y.T, M.T)
+
+                for j in range(len(path)-1):
+                    plt.plot([path[j].x, path[j+1].x], [path[j].y, path[j+1].y], '.-k')
+                plt.plot(inbound.x, inbound.y, 'og')
+                plt.plot(center.x, center.y, 'ok')
+                plt.plot(outbound.x, outbound.y, 'or')
+
+                plt.waitforbuttonpress()
+
+            if los:
+                return True
+            else:
+                return False
+
+        return True
+
+
+    def angle(self, a, b, c):
+        ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
+        return ang + 360 if ang < 0 else ang
 
 
     def __los_check(self, start, goal):
@@ -391,7 +533,7 @@ class Director():
         return None
 
 
-    def __find_shortest_paths(self, active, path, dr):
+    def __find_shortest_paths(self, active, path, doors, dr):
         """
         Recursive function for finding shortest path from sensor to every convex corner in layout.
         Is essential a wide-first search, but runtime is quite quick as only minor things are checked each time.
@@ -413,15 +555,20 @@ class Director():
         """
 
         # append path with active node
-        path.append([active.x, active.y])
+        path.append(active)
+
+        for door in self.doors:
+            if active in door.pp and door not in doors:
+                doors.append(door)
 
         # stop if we've been here before on a shorter path
         if active.shortest_distance != None and dr > active.shortest_distance:
-            return path
+            return path, doors
         
         # as this is currently the sortest path from sensor to active, copy it to active
         active.shortest_distance = dr
         active.shortest_path = [p for p in path]
+        active.visited_doors = [d for d in doors]
 
         # path search plot
         if 0:
@@ -450,7 +597,7 @@ class Director():
 
         if 0:
             # plot
-            self.plot(start=active, candidates=candidates, paths=[path])
+            self.plot_debug(start=active, candidates=candidates, paths=[path])
 
         # recursively iterate candidates
         for c in candidates:
@@ -458,12 +605,16 @@ class Director():
             ddr = hlp.eucledian_distance(active.x, active.y, c.x, c.y)
 
             # recursive
-            path = self.__find_shortest_paths(c, path, dr+ddr)
+            path, doors = self.__find_shortest_paths(c, path, doors, dr+ddr)
+
+            for door in doors:
+                if c in door.pp:
+                    doors.pop()
             path.pop()
         for c in candidates:
             c.unused = True
 
-        return path
+        return path, doors
 
 
     def __validate_corner(self, origin, corner):
@@ -923,6 +1074,9 @@ class Director():
         for wall in self.walls:
             self.ax.plot(wall.xx, wall.yy, '-k', linewidth=3)
 
+        for door in self.doors:
+            self.ax.plot(door.xx, door.yy, ':k', linewidth=3)
+
         # draw lines
         if lines != None:
             for line in lines:
@@ -951,8 +1105,8 @@ class Director():
         if paths != None:
             for path in paths:
                 for i in range(1, len(path)):
-                    xx = [path[i-1][0], path[i][0]]
-                    yy = [path[i-1][1], path[i][1]]
+                    xx = [path[i-1].x, path[i].x]
+                    yy = [path[i-1].y, path[i].y]
                     self.ax.plot(xx, yy, '.-r')
 
         plt.gca().set_aspect('equal', adjustable='box')
@@ -995,4 +1149,27 @@ class Director():
             plt.waitforbuttonpress()
         else:
             plt.pause(0.01)
+
+
+    def __define_rooms(self):
+        # spawn room grid
+        self.R = np.zeros(shape=self.X.shape)
+
+        # choose a random starting point until at least 1 door is seen
+        found = False
+        while not found:
+            x0 = random.randint(0, len(self.x_interp))
+            y0 = random.randint(0, len(self.y_interp))
+            p0 = hlp.Point(x0, y0)
+
+            for door in self.doors:
+                if self.__los_check(p0, door.pm):
+                    found = True
+                    break
+
+        # set active node
+        node = hlp.Point(self.x_interp[x0], self.y_interp[y0])
+        
+        if 1:
+            self.plot_debug(start=node, grid=[self.R])
 

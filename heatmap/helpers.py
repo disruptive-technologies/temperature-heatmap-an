@@ -6,57 +6,24 @@ import numpy  as np
 import pandas as pd
 
 
+class Room():
+    def __init__(self, corners):
+        # give to self
+        self.corners = corners
+
+
 class Point():
-    def __init__(self, x=None, y=None):
+    def __init__(self, x, y):
         # give to self
         self.x = x
         self.y = y
 
-        # initialise lists
-        self.children = []
-        self.walls = []
 
-        # flag if used
-        self.unused = True
-
-        # variables
-        self.shortest_distance = None
-
-
-class Line():
-    def __init__(self, p1, p2, wall=False):
+class Door():
+    def __init__(self, p1, p2):
         # give to self
         self.p1 = p1
         self.p2 = p2
-
-        # list of points
-        self.pp = [p1, p2]
-
-        # add self object to point
-        if wall:
-            p1.walls.append(self)
-            p2.walls.append(self)
-
-        # some coordinate formatting
-        self.xx = [p1.x, p2.x]
-        self.yy = [p1.y, p2.y]
-
-
-class Sensor():
-    def __init__(self, p, identifier='', t=None):
-        # give to self
-        self.p = p
-        self.identifier = identifier
-        self.t = t
-        
-        # extract x- and y- coordinate
-        self.x = p.x
-        self.y = p.y
-
-
-    def new_event_data(self, event):
-        # update temperature
-        self.t = event['data']['temperature']['value']
 
 
 def print_error(text, terminate=True):
