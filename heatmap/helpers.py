@@ -49,13 +49,14 @@ class Corner(Point):
 
 
 class Door():
-    def __init__(self, p1, p2, room1, room2):
+    def __init__(self, p1, p2, room1, room2, closed=False):
         # inherit Line
         Line.__init__(self, Point(p1[0], p1[1]), Point(p2[0], p2[1]))
 
         # give to self
-        self.room1 = room1
-        self.room2 = room2
+        self.room1  = room1
+        self.room2  = room2
+        self.closed = closed
 
         # variables
         self.unused = True
@@ -70,11 +71,12 @@ class Door():
 
 
 class Sensor():
-    def __init__(self, x, y, name):
+    def __init__(self, x, y, name, t0=None):
         # give to self
         self.x    = x
         self.y    = y
         self.name = name
+        self.t    = t0
 
         # make point
         self.p = Point(x, y)

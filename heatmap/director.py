@@ -72,6 +72,9 @@ class Director():
         # generate distance map for each sensor
         self.__eucledian_map_debug()
 
+        # spawn heatmap
+        self.heatmap = np.zeros(shape=self.X.shape)
+
 
     def __parse_sysargs(self):
         """
@@ -237,7 +240,7 @@ class Director():
 
             # populate map from sensor poitn of view
             sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, sensor.p, self.rooms[sensor.room_number])
-            if 1:
+            if 0:
                 self.plot_debug(start=sensor.p, grid=[sensor.M*10])
 
             # populate grid with distances from each corner
@@ -251,7 +254,7 @@ class Director():
                             sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, offset_node, room)
 
                             # plot population process
-                            if 1:
+                            if 0:
                                 self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=offset_node.shortest_path)
 
                 # fill from corners
@@ -261,11 +264,11 @@ class Director():
                         sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, corner, room)
 
                         # plot population process
-                        if 1:
+                        if 0:
                             self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=corner.shortest_path)
 
             # plot population result
-            if 1:
+            if 0:
                 self.plot_debug(start=sensor.p, grid=[sensor.M*10])
 
 
@@ -519,6 +522,36 @@ class Director():
         return mx*eps, my*eps
 
 
+    def update_heatmap(self):
+        # iterate x- and y-axis axis
+        for x, gx in enumerate(self.x_interp):
+            for y, gy in enumerate(self.y_interp):
+                # reset lists
+                temperatures = []
+                distances    = []
+
+                # iterate sensors
+                for room in self.rooms:
+                    for sensor in room.sensors:
+                        # check if distance grid is valid here
+                        if sensor.D[y, x] > 0 and sensor.t != None:
+                            temperatures.append(sensor.t)
+                            distances.append(sensor.D[y, x])
+
+                # do nothing if no valid distances
+                if len(distances) == 0:
+                    self.heatmap[y, x] = None
+                elif len(distances) == 1:
+                    self.heatmap[y, x] = temperatures[0]
+                else:
+                    # calculate weighted average
+                    weights = (1/(np.array(distances)))**2
+                    temperatures = np.array(temperatures)
+                    
+                    # update mesh
+                    self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
+
+
     def initialise_debug_plot(self):
         self.fig, self.ax = plt.subplots()
 
@@ -567,6 +600,52 @@ class Director():
             plt.show()
         else:
             plt.waitforbuttonpress()
+
+
+    def initialise_heatmap_plot(self):
+        self.hfig, self.hax = plt.subplots()
+        self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=self.t_range[0], vmax=self.t_range[1]), cmap=cm.jet))
+
+
+    def plot_heatmap(self, update_time='', blocking=True):
+        # initialise if not open
+        if not hasattr(self, 'hax') or not plt.fignum_exists(self.hfig.number):
+            self.initialise_heatmap_plot()
+
+        # clear
+        self.hax.clear()
+
+        # set title
+        self.hax.set_title(update_time)
+
+        # draw walls
+        for room in self.rooms:
+            xx, yy = room.get_outline()
+            self.hax.plot(xx, yy, '-k', linewidth=3)
+
+        # draw doors
+        for door in self.doors:
+            if door.closed:
+                self.hax.plot(door.xx, door.yy, '--r', linewidth=8)
+            else:
+                self.hax.plot(door.xx, door.yy, '--g', linewidth=8)
+
+        # draw sensors
+        for sensor in self.sensors:
+            self.hax.plot(sensor.p.x, sensor.p.y, 'ok', markersize=10)
+
+        # draw heatmap
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
+        pc.set_clim(self.t_range[0], self.t_range[1])
+
+        # lock aspect
+        plt.gca().set_aspect('equal', adjustable='box')
+        
+        if blocking:
+            plt.show()
+        else:
+            plt.pause(0.01)
 
 
 
