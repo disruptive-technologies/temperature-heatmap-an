@@ -158,7 +158,7 @@ class Director():
         self.X, self.Y = np.meshgrid(self.x_interp, self.y_interp)
 
 
-    def __populate_grid(self, D, corner, room):
+    def __populate_grid(self, D, M, corner, room):
         """
         Scan matrix and populate with eucledian distance for cells in line of sight of corner.
 
@@ -197,8 +197,24 @@ class Director():
                     # update map if less than existing value
                     if D[y, x] == 0 or d < D[y, x]:
                         D[y, x] = d
+                        M[y, x] = len(corner.visited_doors)
 
-        return D
+        return D, M
+
+
+    def __reset_pathfinding_variables(self):
+        for room in self.rooms:
+            for corner in room.corners:
+                corner.dmin = None
+                corner.shortest_path = []
+                corner.visited_doors = []
+                corner.unused = True
+        for door in self.doors:
+            door.unused = True
+            for of in [door.o1, door.o2]:
+                of.dmin = None
+                of.shortest_path = []
+                of.visited_doors = []
 
 
     def __eucledian_map_debug(self):
@@ -208,69 +224,63 @@ class Director():
             sensor.emap = np.zeros(shape=self.X.shape)
 
             # reset room corner distances
-            for room in self.rooms:
-                for corner in room.corners:
-                    corner.dmin = None
-                    corner.shortest_path = []
-                    corner.unused = True
-            for door in self.doors:
-                door.unused = True
-                for of in [door.o1, door.o2]:
-                    of.dmin = None
-                    of.shortest_path = []
+            self.__reset_pathfinding_variables()
 
             # recursively find shortest distance to all valid corners
-            path = []
-            _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, dr=0)
+            path  = []
+            doors = []
+            _, _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, doors, dr=0)
 
-            # initialise grid
+            # initialise grids
             sensor.D = np.zeros(shape=self.X.shape)
+            sensor.M = np.zeros(shape=self.X.shape)
 
             # populate map from sensor poitn of view
-            sensor.D = self.__populate_grid(sensor.D, sensor.p, self.rooms[sensor.room_number])
-            if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, sensor.p, self.rooms[sensor.room_number])
+            if 1:
+                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
                 # fill from doors
                 for di, door in enumerate(self.doors):
-                    print('room {}, sensor {}, door {}'.format(ri, i, di))
+                    print('Sensor {}, Room {}, Door {}'.format(i, ri, di))
                     if door.outbound_room == room:
                         offset_node = door.outbound_offset
                         if len(offset_node.shortest_path) > 0:
-                            sensor.D = self.__populate_grid(sensor.D, offset_node, room)
+                            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, offset_node, room)
 
                             # plot population process
-                            if 0:
-                                self.plot_debug(start=sensor.p, grid=[sensor.D], paths=offset_node.shortest_path)
+                            if 1:
+                                self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=offset_node.shortest_path)
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
-                    print('room {}, sensor {}, corner {}'.format(ri, i, ci))
+                    print('Sensor {}, Room {}, Corner {}'.format(i, ri, ci))
                     if len(corner.shortest_path) > 0:
-                        sensor.D = self.__populate_grid(sensor.D, corner, room)
+                        sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, corner, room)
 
                         # plot population process
-                        if 0:
-                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
+                        if 1:
+                            self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=corner.shortest_path)
 
             # plot population result
-            if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+            if 1:
+                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
 
 
-    def __find_shortest_paths(self, start, room, path, dr):
+    def __find_shortest_paths(self, start, room, path, doors, dr):
         # append path with active node
         path.append(start)
 
         # stop if we've been here before on a shorter path
         if start.dmin != None and dr > start.dmin:
-            return path
+            return path, doors
         
         # as this is currently the sortest path from sensor to active, copy it to active
         start.dmin = dr
         start.shortest_path = [p for p in path]
+        start.visited_doors = [d for d in doors]
 
         # find candidate corners for path expansion
         corner_candidates = self.__get_corner_candidates(start, room)
@@ -286,7 +296,7 @@ class Director():
             ddr = hlp.eucledian_distance(start.x, start.y, c.x, c.y)
 
             # recursive
-            path = self.__find_shortest_paths(c, room, path, dr+ddr)
+            path, doors = self.__find_shortest_paths(c, room, path, doors, dr+ddr)
             path.pop()
         for c in corner_candidates:
             c.unused = True
@@ -299,14 +309,20 @@ class Director():
             d.outbound_offset.dx = 0
             d.outbound_offset.dy = 0
 
+            # append to doors list
+            doors.append(d)
+
             # recursive
-            path = self.__find_shortest_paths(d.outbound_offset, d.outbound_room, path, dr+ddr)
+            path, doors = self.__find_shortest_paths(d.outbound_offset, d.outbound_room, path, doors, dr+ddr)
+
+            # pop lists as we're back to current depth
             path.pop()
+            doors.pop()
 
         for d in door_candidates:
             d.unused = True
 
-        return path
+        return path, doors
 
 
     def __get_corner_candidates(self, start, room):

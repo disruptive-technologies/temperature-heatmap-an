@@ -38,7 +38,7 @@ rooms = [
             Corner(x=23.0, y=0.0),
         ],
         sensors = [
-            # Sensor(x=8.0, y=0.5, name='bjeho0fbluqg00dltg30')
+            Sensor(x=8.0, y=0.5, name='bjeho0fbluqg00dltg30')
         ],
     ),
 
