@@ -228,20 +228,12 @@ class Director():
 
             # populate map from sensor poitn of view
             sensor.D = self.__populate_grid(sensor.D, sensor.p, self.rooms[sensor.room_number])
-            if 1:
+            if 0:
                 self.plot_debug(start=sensor.p, grid=[sensor.D])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
-                for ci, corner in enumerate(room.corners):
-                    print('room {}, sensor {}, corner {}'.format(ri, i, ci))
-                    if len(corner.shortest_path) > 0:
-                        sensor.D = self.__populate_grid(sensor.D, corner, room)
-
-                        # plot population process
-                        if 1:
-                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
-
+                # fill from doors
                 for di, door in enumerate(self.doors):
                     print('room {}, sensor {}, door {}'.format(ri, i, di))
                     if door.outbound_room == room:
@@ -250,11 +242,21 @@ class Director():
                             sensor.D = self.__populate_grid(sensor.D, offset_node, room)
 
                             # plot population process
-                            if 1:
+                            if 0:
                                 self.plot_debug(start=sensor.p, grid=[sensor.D], paths=offset_node.shortest_path)
 
+                # fill from corners
+                for ci, corner in enumerate(room.corners):
+                    print('room {}, sensor {}, corner {}'.format(ri, i, ci))
+                    if len(corner.shortest_path) > 0:
+                        sensor.D = self.__populate_grid(sensor.D, corner, room)
+
+                        # plot population process
+                        if 0:
+                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
+
             # plot population result
-            if 1:
+            if 0:
                 self.plot_debug(start=sensor.p, grid=[sensor.D])
 
 
