@@ -15,12 +15,12 @@ if __name__ == '__main__':
     # initialise Director instance
     d = Director(USERNAME, PASSWORD, PROJECT_ID, API_URL_BASE, t_range=[18, 27], resolution=5)
 
-    d.update_heatmap()
-    d.plot_heatmap()
+    # d.update_heatmap()
+    # d.plot_heatmap()
 
     # iterate historic events
-    # d.run_history()
+    d.run_history()
 
     # stream realtime events
-    # d.run_stream(n_reconnects=5)
+    d.run_stream(n_reconnects=5)
 

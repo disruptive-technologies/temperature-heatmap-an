@@ -49,13 +49,14 @@ class Corner(Point):
 
 
 class Door():
-    def __init__(self, p1, p2, room1, room2, closed=False):
+    def __init__(self, p1, p2, room1, room2, name=None, closed=False):
         # inherit Line
         Line.__init__(self, Point(p1[0], p1[1]), Point(p2[0], p2[1]))
 
         # give to self
         self.room1  = room1
         self.room2  = room2
+        self.name   = name
         self.closed = closed
 
         # variables
@@ -70,6 +71,13 @@ class Door():
         self.o2 = Corner(self.x+v[0]*(-eps), self.y+v[1]*(-eps))
 
 
+    def new_event_data(self, event):
+        if event['data']['objectPresent']['state'] == 'PRESENT':
+            self.closed = True
+        else:
+            self.closed = False
+
+
 class Sensor():
     def __init__(self, x, y, name, t0=None):
         # give to self
@@ -80,6 +88,10 @@ class Sensor():
 
         # make point
         self.p = Point(x, y)
+
+
+    def new_event_data(self, event):
+        self.t = event['data']['temperature']['value']
 
 
 def print_error(text, terminate=True):
@@ -137,7 +149,11 @@ def json_sort_key(json):
 
     """
 
-    timestamp = json['data']['temperature']['updateTime']
+    if 'temperature' in json['data']:
+        timestamp = json['data']['temperature']['updateTime']
+    else:
+        timestamp = json['data']['objectPresent']['updateTime']
+
     _, unixtime = convert_event_data_timestamp(timestamp)
     return unixtime
 
