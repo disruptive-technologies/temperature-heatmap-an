@@ -1,5 +1,6 @@
 # packages
 import os
+import sys
 import json
 import time
 import requests
@@ -72,6 +73,8 @@ class Director():
         self.__set_filters()
 
         # inherit rooms layout
+        self.__decode_json_layout()
+        sys.exit()
         self.__deconstruct_layout()
 
         # get limits for x- and y- axes
@@ -100,9 +103,10 @@ class Director():
         now = (datetime.datetime.utcnow().replace(microsecond=0)).isoformat() + 'Z'
 
         # general arguments
-        parser.add_argument('--starttime', metavar='', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
-        parser.add_argument('--endtime',   metavar='', help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
-        parser.add_argument('--timestep',  metavar='', help='Heatmap update period.', required=False, default=3600, type=int)
+        parser.add_argument('--layout',    help='Json file with room layout.', required=True)
+        parser.add_argument('--starttime', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
+        parser.add_argument('--endtime',   help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
+        parser.add_argument('--timestep',  help='Heatmap update period.',      required=False, default=3600, type=int)
 
         # boolean flags
         parser.add_argument('--plot',  action='store_true', help='Plot the estimated desk occupancy.')
@@ -167,6 +171,10 @@ class Director():
             self.last_update = unixtime
 
             return True
+
+
+    def __decode_json_layout(self):
+        pass
 
 
     def __deconstruct_layout(self):

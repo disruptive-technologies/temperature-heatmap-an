@@ -1,0 +1,62 @@
+{
+    "rooms": [
+        {
+            "name": "room0",
+            "corners": {
+                "x": [0.0, 0.0, 5.5, 5.5],
+                "y": [0.0, 4.0, 4.0, 0.0]
+            },
+            "sensors": [
+                {"x": 3.0, "y": 0.1, "name": "bjeicju7kro000cp0l8g"}
+            ]
+        },
+
+        {
+            "name": "room1",
+            "corners": {
+                "x": [5.5, 5.5, 3.5, 3.5, 5.5, 5.5, 25.5, 25.5, 28.0, 28.0, 33.0, 33.0, 23.0, 23.0],
+                "y": [0.0, 4.0, 4.0, 8.5, 8.5, 6.0,  6.0,  8.5,  8.5,  6.0,  6.0,  4.0,  4.0,  0.0]
+            },
+            "sensors": [
+                {"x":  3.6, "y": 7.0, "name": "bfuj6v8lq8r000ela7cg"},
+                {"x":  8.0, "y": 0.5, "name": "bjeho0fbluqg00dltg30"},
+                {"x": 14.5, "y": 3.5, "name": "bhnc1ghqitfg008o31ag"},
+                {"x": 14.5, "y": 0.1, "name": "bfuj719o5b7g0093bbfg"},
+                {"x": 24.0, "y": 4.1, "name": "bjei5c67kro000cp0j20"},
+                {"x": 27.9, "y": 7.0, "name": "bjei8nvbluqg00dltl20"},
+                {"x": 21.0, "y": 4.0, "name": "bfuj70olq8r000ela7dg"},
+                {"x": 22.9, "y": 0.5, "name": "bfuj75ho5b7g0093bbk0"},
+                {"x": 17.0, "y": 4.0, "name": "bfui2sglq8r000el9htg"},
+                {"x": 32.7, "y": 4.1, "name": "bfuj701o5b7g0093bbeg"}
+            ]
+        },
+
+        {
+            "name": "room2",
+            "corners": {
+                "x": [11.0, 11.0, 15.5, 15.5, 18.5, 18.5],
+                "y": [ 6.0, 11.0, 11.0,  8.5,  8.5,  6.0]
+            },
+            "sensors": [
+                {"x":11.1, "y": 7.5, "name": "bjei8odntbig00e43gr0"}
+            ]
+        }
+    ],
+
+    "doors": [
+        {
+            "p1": {"x": 4.5, "y": 4.0}, 
+            "p2": {"x": 5.5, "y": 6.0}, 
+            "room1": "room1", 
+            "room2": "room0", 
+            "name": "bh3d3dl7rihlu0c3dm10"
+        },
+        {
+            "p1": {"x":16.0, "y": 6.0}, 
+            "p2": {"x":17.0, "y": 6.0}, 
+            "room1": "room1", 
+            "room2": "room2", 
+            "name": "bh3d3ed7rihlu0c3du90"
+        }
+    ]
+}
