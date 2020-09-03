@@ -70,7 +70,10 @@ class Director():
         self.__generate_bounding_box()
 
         # generate distance map for each sensor
-        self.__eucledian_map_debug()
+        if self.args['debug']:
+            self.__eucledian_map_debug()
+        else:
+            self.__eucledian_map_threaded()
 
         # spawn heatmap
         self.heatmap = np.zeros(shape=self.X.shape)
@@ -113,6 +116,10 @@ class Director():
         self.rooms = layout.rooms
         self.doors = layout.doors
 
+        # give some kind of identifier to doors
+        for i, door in enumerate(self.doors):
+            door.name = i
+
         # generate list of sensor objects
         self.sensors = []
         for i, room in enumerate(self.rooms):
@@ -122,6 +129,9 @@ class Director():
 
                 # give room number to sensor
                 sensor.room_number = i
+
+        # save number of sensors
+        self.n_sensors = len(self.sensors)
 
 
     def __generate_bounding_box(self):
@@ -161,7 +171,7 @@ class Director():
         self.X, self.Y = np.meshgrid(self.x_interp, self.y_interp)
 
 
-    def __populate_grid(self, D, M, corner, room):
+    def __populate_grid(self, D, N, M, corner, room):
         """
         Scan matrix and populate with eucledian distance for cells in line of sight of corner.
 
@@ -200,9 +210,10 @@ class Director():
                     # update map if less than existing value
                     if D[y, x] == 0 or d < D[y, x]:
                         D[y, x] = d
-                        M[y, x] = len(corner.visited_doors)
+                        N[y, x] = len(corner.visited_doors)
+                        M[y][x] = [door.name for door in corner.visited_doors]
 
-        return D, M
+        return D, N, M
 
 
     def __reset_pathfinding_variables(self):
@@ -236,12 +247,13 @@ class Director():
 
             # initialise grids
             sensor.D = np.zeros(shape=self.X.shape)
-            sensor.M = np.zeros(shape=self.X.shape)
+            sensor.N = np.zeros(shape=self.X.shape)
+            sensor.M = [[[] for y in range(self.X.shape[1])] for x in range(self.X.shape[0])]
 
             # populate map from sensor poitn of view
-            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, sensor.p, self.rooms[sensor.room_number])
+            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor.p, self.rooms[sensor.room_number])
             if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
+                self.plot_debug(start=sensor.p, grid=[sensor.N*10])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
@@ -251,25 +263,145 @@ class Director():
                     if door.outbound_room == room:
                         offset_node = door.outbound_offset
                         if len(offset_node.shortest_path) > 0:
-                            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, offset_node, room)
+                            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, offset_node, room)
 
                             # plot population process
                             if 0:
-                                self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=offset_node.shortest_path)
+                                self.plot_debug(start=sensor.p, grid=[sensor.N*10], paths=offset_node.shortest_path)
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
                     print('Sensor {}, Room {}, Corner {}'.format(i, ri, ci))
                     if len(corner.shortest_path) > 0:
-                        sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, corner, room)
+                        sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, corner, room)
 
                         # plot population process
                         if 0:
-                            self.plot_debug(start=sensor.p, grid=[sensor.M*10], paths=corner.shortest_path)
+                            self.plot_debug(start=sensor.p, grid=[sensor.N*10], paths=corner.shortest_path)
 
             # plot population result
             if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
+                self.plot_debug(start=sensor.p, grid=[sensor.N*10])
+
+
+    def __eucledian_map_threaded(self):
+        """
+        Generate eucledian distance map for each sensor.
+        Applies multiprocessing for a significant reduction in execution time.
+
+        """
+
+        def map_process(sensor, i):
+            """
+            Same as __eucledian_map_threaded() but must be isolated in a function for multiprocessing.
+            Writes populated distance maps to cache_dir so that we only have to do this once. It's slow.
+
+            Parameters
+            ----------
+            sensor : object
+                Sensor object with coordinates and temperature information.
+            i : int
+                Sensor number in list.
+
+            """
+
+            self.__reset_pathfinding_variables()
+        
+            # recursively find shortest path from sensor to all corners
+            path  = []
+            doors = []
+            _, _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, doors, dr=0)
+        
+            # initialise grids
+            sensor.D = np.zeros(shape=self.X.shape)
+            sensor.N = np.zeros(shape=self.X.shape)
+            sensor.M = [[[] for y in range(self.X.shape[1])] for x in range(self.X.shape[0])]
+
+            # populate map from sensor poitn of view
+            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor.p, self.rooms[sensor.room_number])
+        
+            # populate grid with distances from each corner
+            for ri, room in enumerate(self.rooms):
+                # fill from doors
+                for di, door in enumerate(self.doors):
+                    print('Sensor {}, Room {}, Door {}'.format(i, ri, di))
+                    if door.outbound_room == room:
+                        offset_node = door.outbound_offset
+                        if len(offset_node.shortest_path) > 0:
+                            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, offset_node, room)
+
+                # fill from corners
+                for ci, corner in enumerate(room.corners):
+                    print('Sensor {}, Room {}, Corner {}'.format(i, ri, ci))
+                    if len(corner.shortest_path) > 0:
+                        sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, corner, room)
+
+            # write sensor object to pickle
+            hlp.write_pickle(sensor, os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i)), cout=True)
+
+        # just skip everything and read from cache if so desired
+        if self.args['read']:
+            self.__get_cached_sensors()
+            return
+
+        # initialise variables needed for process
+        procs = []
+        nth_proc = 0
+
+        # iterate sensors
+        for i, sensor in enumerate(self.sensors):
+            # spawn a thread per sensor
+            proc = mpr.Process(target=map_process, args=(sensor, i))
+            procs.append(proc)
+            proc.start()
+            print('-- Process #{} spawned.'.format(nth_proc))
+            nth_proc = nth_proc + 1
+
+        # wait for each individual process to finish
+        nth_proc = 0
+        for proc in procs:
+            proc.join()
+            print('-- Process #{} completed.'.format(nth_proc))
+            nth_proc = nth_proc + 1
+
+        # fetch sensors from cache
+        self.__get_cached_sensors()
+
+
+    def __get_cached_sensors(self):
+        """
+        Exchange self.sensors with sensors cached in cache_dir.
+        Usually called to recover previously calculated distance maps.
+
+        """
+
+        # get files in cache
+        cache_files = os.listdir(self.cache_dir)
+
+        # iterate sensors
+        for i in range(self.n_sensors):
+            # keep track of if we found the pickle
+            found = False
+
+            # iterate files in cache
+            for f in cache_files:
+                # look for correct pickle
+                if self.pickle_id + '{}.pkl'.format(i) in f and not found:
+                    # read pickle
+                    pickle_path = os.path.join(self.cache_dir, self.pickle_id + '{}.pkl'.format(i))
+                    pickle_sensor = hlp.read_pickle(pickle_path, cout=True)
+
+                    # exchange
+                    self.sensors[i].D = pickle_sensor.D
+                    self.sensors[i].N = pickle_sensor.N
+                    self.sensors[i].M = pickle_sensor.M
+
+                    # found it
+                    found = True
+
+            # shouldn't happen, but just in case
+            if not found:
+                hlp.print_error('Pickle at [{}] does not exist.'.format(pickle_path), terminate=True)
 
 
     def __find_shortest_paths(self, start, room, path, doors, dr):
@@ -533,8 +665,15 @@ class Director():
                 # iterate sensors
                 for room in self.rooms:
                     for sensor in room.sensors:
+                        los = True
+                        # check if doors in path are closed
+                        if len(sensor.M[y][x]) > 0:
+                            for door in self.doors:
+                                if door.closed and door.name in sensor.M[y][x]:
+                                    los = False
+
                         # check if distance grid is valid here
-                        if sensor.D[y, x] > 0 and sensor.t != None:
+                        if los and sensor.D[y, x] > 0 and sensor.t != None:
                             temperatures.append(sensor.t)
                             distances.append(sensor.D[y, x])
 
@@ -836,11 +975,11 @@ class Director_():
 
             # initialise grid
             sensor.D = np.zeros(shape=self.X.shape)
-            sensor.M = np.zeros(shape=self.X.shape)
+            sensor.N = np.zeros(shape=self.X.shape)
             sensor.R = np.zeros(shape=self.X.shape)
 
             # populate map from sensor poitn of view
-            sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, sensor.p)
+            sensor.D, sensor.N = self.__populate_grid(sensor.D, sensor.N, sensor.p)
 
             # plot population process
             if 0:
@@ -850,17 +989,17 @@ class Director_():
             for ci, corner in enumerate(self.corners):
                 if len(corner.shortest_path) > 0:
                     print('sensor {}, corner {}'.format(i, ci))
-                    sensor.D, sensor.M = self.__populate_grid(sensor.D, sensor.M, corner)
+                    sensor.D, sensor.N = self.__populate_grid(sensor.D, sensor.N, corner)
 
                     # plot population process
-                    if 1:
+                    if 0:
                         # self.plot_debug(goal=corner, grid=[sensor.D], paths=[corner.shortest_path])
-                        self.plot_debug(goal=corner, grid=[sensor.M*10], paths=[corner.shortest_path])
+                        self.plot_debug(goal=corner, grid=[sensor.N*10], paths=[corner.shortest_path])
 
             # plot population result
-            if 1:
+            if 0:
                 # self.plot_debug(start=sensor.p, grid=[sensor.D])
-                self.plot_debug(start=sensor.p, grid=[sensor.M*10])
+                self.plot_debug(start=sensor.p, grid=[sensor.N*10])
 
 
     def __eucledian_map_threaded(self):

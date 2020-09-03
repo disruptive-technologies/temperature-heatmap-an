@@ -124,11 +124,11 @@ rooms = [
 ]
 
 doors = [
-    Door(p1=[ 4.5, 4.0], p2=[ 5.5, 4.0], room1=rooms[0], room2=rooms[1], closed=False),
-    Door(p1=[16.0, 6.0], p2=[17.0, 6.0], room1=rooms[1], room2=rooms[2], closed=False),
-    Door(p1=[27.0, 4.0], p2=[28.0, 4.0], room1=rooms[1], room2=rooms[3], closed=False),
-    Door(p1=[29.5, 4.0], p2=[30.5, 4.0], room1=rooms[1], room2=rooms[4], closed=False),
-    Door(p1=[30.5, 4.0], p2=[31.5, 4.0], room1=rooms[1], room2=rooms[5], closed=False),
-    Door(p1=[33.0, 6.0], p2=[33.0, 5.0], room1=rooms[1], room2=rooms[6], closed=False),
-    Door(p1=[30.0, 6.0], p2=[31.0, 6.0], room1=rooms[1], room2=rooms[7], closed=True),
+    Door(p1=[ 4.5, 4.0], p2=[ 5.5, 4.0], room1=rooms[0], room2=rooms[1], closed=True),
+    Door(p1=[16.0, 6.0], p2=[17.0, 6.0], room1=rooms[1], room2=rooms[2], closed=True),
+    Door(p1=[27.0, 4.0], p2=[28.0, 4.0], room1=rooms[1], room2=rooms[3], closed=True),
+    Door(p1=[29.5, 4.0], p2=[30.5, 4.0], room1=rooms[1], room2=rooms[4], closed=True),
+    Door(p1=[30.5, 4.0], p2=[31.5, 4.0], room1=rooms[1], room2=rooms[5], closed=True),
+    Door(p1=[33.0, 6.0], p2=[33.0, 5.0], room1=rooms[1], room2=rooms[6], closed=True),
+    Door(p1=[30.0, 6.0], p2=[31.0, 6.0], room1=rooms[1], room2=rooms[7], closed=False),
 ]
