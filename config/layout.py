@@ -41,8 +41,8 @@ rooms = [
             Sensor(x= 3.6, y=7.0, name='bfuj6v8lq8r000ela7cg', t0=None),
             Sensor(x= 8.0, y=0.5, name='bjeho0fbluqg00dltg30', t0=None),
             Sensor(x=14.5, y=3.5, name='bhnc1ghqitfg008o31ag', t0=None),
-            Sensor(x=15.5, y=0.5, name='bfuj719o5b7g0093bbfg', t0=None),
-            Sensor(x=18.0, y=5.9, name='bjejnvgpismg008hqrrg', t0=None),
+            Sensor(x=14.5, y=0.1, name='bfuj719o5b7g0093bbfg', t0=None),
+            # Sensor(x=18.0, y=5.9, name='bjejnvgpismg008hqrrg', t0=None),
             Sensor(x=24.0, y=4.1, name='bjei5c67kro000cp0j20', t0=None),
             Sensor(x=27.9, y=7.0, name='bjei8nvbluqg00dltl20', t0=None),
             Sensor(x=21.0, y=4.0, name='bfuj70olq8r000ela7dg', t0=None),
@@ -76,7 +76,8 @@ rooms = [
             Corner(x=28.0, y= 0.0),
         ],
         sensors = [
-            Sensor(x=25.5, y=0.5, name='bjei71tp0jt000aqc78g', t0=None),
+            Sensor(x=27.9, y=0.1, name='bjei71tp0jt000aqc78g', t0=None),
+            Sensor(x=23.1, y=3.5, name='bfui35ho5b7g0093am6g', t0=None),
         ],
     ),
 
@@ -156,7 +157,8 @@ rooms = [
             Corner(x=34.5, y= 6.0),
         ],
         sensors = [
-            Sensor(x=31.1, y=8.0, name='bjei50dp0jt000aqc6kg', t0=None),
+            Sensor(x=31.1, y=8.5, name='bjei50dp0jt000aqc6kg', t0=None),
+            Sensor(x=34.4, y=6.1, name='bfui31ho5b7g0093am2g', t0=None),
         ],
     ),
 ]

@@ -1037,8 +1037,8 @@ class Director():
             self.hax.plot(sensor.p.x, sensor.p.y, 'ok', markersize=10)
 
         # draw heatmap
-        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
-        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
         pc.set_clim(self.t_range[0], self.t_range[1])
 
         # lock aspect
