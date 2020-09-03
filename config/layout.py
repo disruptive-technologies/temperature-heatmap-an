@@ -1,8 +1,8 @@
 # project
-from heatmap.helpers import Room
-from heatmap.helpers import Corner
-from heatmap.helpers import Door
-from heatmap.helpers import Sensor
+from heatmap.miniclasses import Room
+from heatmap.miniclasses import Corner
+from heatmap.miniclasses import Door
+from heatmap.miniclasses import Sensor
 
 
 rooms = [
@@ -146,6 +146,19 @@ rooms = [
             Sensor(x=6.75, y=8.4, name='bjei4vm7gpvg00cjo3rg', t0=None),
         ],
     ),
+
+    # room 9
+    Room(
+        corners = [
+            Corner(x=31.0, y= 6.0),
+            Corner(x=31.0, y=11.0),
+            Corner(x=34.5, y=11.0),
+            Corner(x=34.5, y= 6.0),
+        ],
+        sensors = [
+            Sensor(x=31.1, y=8.0, name='bjei50dp0jt000aqc6kg', t0=None),
+        ],
+    ),
 ]
 
 doors = [
@@ -157,4 +170,5 @@ doors = [
     Door(p1=[33.0, 6.0], p2=[33.0, 5.0], room1=rooms[1], room2=rooms[6], name='bh3d3f57rihlu0c3e5mg', closed=False),
     Door(p1=[30.0, 6.0], p2=[31.0, 6.0], room1=rooms[1], room2=rooms[7], name='bh3d3cl7rihlu0c3d820', closed=False),
     Door(p1=[ 7.0, 6.0], p2=[ 8.0, 6.0], room1=rooms[1], room2=rooms[8], name='bh3d3dt7rihlu0c3dp1g', closed=False),
+    Door(p1=[31.5, 6.0], p2=[32.5, 6.0], room1=rooms[1], room2=rooms[9], name='bh3d3dd7rihlu0c3dif0', closed=False),
 ]

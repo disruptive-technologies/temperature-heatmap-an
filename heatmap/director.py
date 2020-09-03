@@ -1,9 +1,7 @@
 # packages
 import os
-import sys
 import json
-import math
-import random
+import time
 import requests
 import datetime
 import argparse
@@ -17,8 +15,9 @@ from matplotlib          import cm
 from matplotlib.colors   import Normalize
 
 # project
-import heatmap.helpers   as hlp
-import config.layout     as layout
+import heatmap.helpers     as hlp
+import heatmap.miniclasses as mcl
+import config.layout       as layout
 
 
 class Director():
@@ -118,51 +117,6 @@ class Director():
             self.fetch_history = False
         else:
             self.fetch_history = True
-
-
-    def __fetch_event_history(self):
-        """
-        For each sensor in project, request all events since --starttime from API.
-
-        """
-
-        # initialise empty event list
-        self.event_history = []
-
-        # combine temperature- and door sensors
-        project_sensors = [s for s in self.sensors] + [d for d in self.doors if d.name is not None]
-
-        # iterate devices
-        for sensor in project_sensors:
-            # isolate id
-            sensor_id = sensor.name
-
-            # some printing
-            print('-- Getting event history for {}'.format(sensor_id))
-        
-            # initialise next page token
-            self.history_params['page_token'] = None
-        
-            # set endpoints for event history
-            event_list_url = "{}/projects/{}/devices/{}/events".format(self.api_url_base, self.project_id, sensor_id)
-        
-            # perform paging
-            while self.history_params['page_token'] != '':
-                event_listing = requests.get(event_list_url, auth=(self.username, self.password), params=self.history_params)
-                event_json = event_listing.json()
-
-                if event_listing.status_code < 300:
-                    self.history_params['page_token'] = event_json['nextPageToken']
-                    self.event_history += event_json['events']
-                else:
-                    print(event_json)
-                    hlp.print_error('Status Code: {}'.format(event_listing.status_code), terminate=True)
-        
-                if self.history_params['page_token'] is not '':
-                    print('\t-- paging')
-        
-        # sort event history in time
-        self.event_history.sort(key=hlp.json_sort_key, reverse=False)
 
 
     def __new_event_data(self, event_data, cout=True):
@@ -297,10 +251,10 @@ class Director():
         for x, gx in enumerate(self.x_interp):
             for y, gy in enumerate(self.y_interp):
                 # set active node
-                node = hlp.Point(self.x_interp[x], self.y_interp[y])
+                node = mcl.Point(self.x_interp[x], self.y_interp[y])
 
                 # get distance from corner to node if in line of sight
-                if not self.__has_direct_los(hlp.Point(corner.x+corner.dx, corner.y+corner.dy), node, room):
+                if not self.__has_direct_los(mcl.Point(corner.x+corner.dx, corner.y+corner.dy), node, room):
                     continue
 
                 d = hlp.eucledian_distance(corner.x, corner.y, node.x, node.y)
@@ -582,7 +536,7 @@ class Director():
             dx, dy = self.__corner_offset(room.corners, i)
 
             # check if corner is candidate material
-            if self.__has_direct_los(hlp.Point(start.x+start.dx, start.y+start.dy), hlp.Point(corner.x+dx, corner.y+dy), room):
+            if self.__has_direct_los(mcl.Point(start.x+start.dx, start.y+start.dy), mcl.Point(corner.x+dx, corner.y+dy), room):
                 corner.dx = dx
                 corner.dy = dy
                 candidates.append(corner)
@@ -602,7 +556,7 @@ class Director():
                 continue
 
             # check if we have LOS to either offset
-            offset_start = hlp.Point(start.x+start.dx, start.y+start.dy)
+            offset_start = mcl.Point(start.x+start.dx, start.y+start.dy)
             if self.__has_direct_los(offset_start, door.o1, room):
                 if room == door.room1:
                     door.outbound_room = door.room2
@@ -644,11 +598,7 @@ class Director():
 
         """
 
-        # draw a straight line
-        straight = hlp.Line(start, goal)
-
         # check if los
-        los = True
         for i in range(len(room.corners)):
             # two corners define a wall which can be intersected
             ir = i + 1
@@ -853,7 +803,7 @@ class Director():
                     print(event_json)
                     hlp.print_error('Status Code: {}'.format(event_listing.status_code), terminate=True)
         
-                if self.history_params['page_token'] is not '':
+                if self.history_params['page_token'] != '':
                     print('\t-- paging')
         
         # sort event history in time
@@ -964,7 +914,7 @@ class Director():
 
                     # check for event data error
                     if 'error' in event_data:
-                        hlp.print_error('Event with error []. Skipping Event.'.format(event_data['error']['message']), terminate=False)
+                        hlp.print_error('Event with error msg [{}]. Skipping Event.'.format(event_data['error']['message']), terminate=False)
 
                     # new data received
                     event_data = event_data['result']['event']
@@ -995,6 +945,10 @@ class Director():
             except requests.exceptions.ChunkedEncodingError:
                 nth_reconnect += 1
                 print('An error occured, reconnection attempt {}/{}'.format(nth_reconnect, n_reconnects))
+            except KeyError:
+                print('Skipping event due to KeyError.')
+                print(event_data)
+                print()
             
             # wait 1s before attempting to reconnect
             time.sleep(1)
@@ -1089,6 +1043,7 @@ class Director():
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
+        plt.tight_layout()
         
         if blocking:
             plt.waitforbuttonpress()
