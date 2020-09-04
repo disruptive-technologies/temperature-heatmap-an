@@ -270,7 +270,24 @@ class Sensor(Point):
         self.sensor_id = None
 
 
-    def post_initialise(self, x, y, sensor_id, room_number, t=None):
+    def post_initialise(self, x, y, sensor_id, room_number):
+        """
+        Sensor class second-stage constructor.
+        Must be called, or object will not function properly.
+
+        Parameters
+        ----------
+        x : float
+            x-coordinate of sensor in room.
+        y : float
+            y-coordinate of sensor in room.
+        sensor_id : str
+            Sensor id of sensor. Can be found in DT Studio.
+        room_number : id
+            Integer representing which room the sensor is in. Not the same as room name.
+
+        """
+
         # re-inherit point
         Point.__init__(self, x, y)
 
