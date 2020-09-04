@@ -214,8 +214,8 @@ class Director():
         n_doors = len(jdict['doors'])
 
         # initialise object lists
-        self.rooms   = [mcl.Room() for i in range(len(jdict['rooms']))]
-        self.doors   = [mcl.Door() for i in range(len(jdict['doors']))]
+        self.rooms   = [mcl.Room() for i in range(n_rooms)]
+        self.doors   = [mcl.Door() for i in range(n_doors)]
 
         # get rooms in dict
         for ri in range(n_rooms):
@@ -230,20 +230,20 @@ class Director():
             self.rooms[ri].name = jdict_room['name']
 
             # give room list of corner and sensor objects
-            self.rooms[ri].corners = [mcl.Corner() for i in range(n_corners)]
-            self.rooms[ri].sensors = [mcl.Sensor() for i in range(n_sensors)]
+            self.rooms[ri].corners = [mcl.Corner(x=None, y=None) for i in range(n_corners)]
+            self.rooms[ri].sensors = [mcl.Sensor(x=None, y=None) for i in range(n_sensors)]
 
             # update corners
             for ci in range(n_corners):
                 # isolate json corner and give to room corner
                 jdict_corner = jdict_room['corners'][ci]
-                self.rooms[ri].corners[ci].give_coordinates(x=jdict_corner['x'], y=jdict_corner['y'])
+                self.rooms[ri].corners[ci].set_coordinates(x=jdict_corner['x'], y=jdict_corner['y'])
 
             # update sensors
             for si in range(n_sensors):
                 # isolate json sensor and give to room sensor
                 jdict_sensor = jdict_room['sensors'][si]
-                self.rooms[ri].sensors[si].update_variables(jdict_sensor['x'], jdict_sensor['y'], jdict_sensor['sensor_id'], room_number=ri)
+                self.rooms[ri].sensors[si].post_initialise(jdict_sensor['x'], jdict_sensor['y'], jdict_sensor['sensor_id'], room_number=ri)
 
                 # give t0 if exists
                 if 't0' in jdict_sensor:
@@ -272,7 +272,7 @@ class Director():
             p2 = [jdict_door['p2']['x'], jdict_door['p2']['y']]
 
             # give variables to door object
-            self.doors[di].update_variables(p1, p2, r1, r2, jdict_door['door_id'], di)
+            self.doors[di].post_initialise(p1, p2, r1, r2, jdict_door['door_id'], di)
 
             # give state if it exists
             if 'closed' in jdict_door:
@@ -406,7 +406,7 @@ class Director():
             # recursively find shortest distance to all valid corners
             path  = []
             doors = []
-            _, _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, doors, dr=0)
+            _, _ = self.__find_shortest_paths(sensor, self.rooms[sensor.room_number], path, doors, dr=0)
 
             # initialise grids
             sensor.D = np.zeros(shape=self.X.shape)
@@ -414,7 +414,7 @@ class Director():
             sensor.M = [[[] for y in range(self.X.shape[1])] for x in range(self.X.shape[0])]
 
             # populate map from sensor poitn of view
-            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor.p, self.rooms[sensor.room_number])
+            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor, self.rooms[sensor.room_number])
             if 1:
                 self.plot_debug(start=sensor.p, grid=[sensor.D])
 
@@ -473,7 +473,7 @@ class Director():
             # recursively find shortest path from sensor to all corners
             path  = []
             doors = []
-            _, _ = self.__find_shortest_paths(sensor.p, self.rooms[sensor.room_number], path, doors, dr=0)
+            _, _ = self.__find_shortest_paths(sensor, self.rooms[sensor.room_number], path, doors, dr=0)
         
             # initialise grids
             sensor.D = np.zeros(shape=self.X.shape)
@@ -481,7 +481,7 @@ class Director():
             sensor.M = [[[] for y in range(self.X.shape[1])] for x in range(self.X.shape[0])]
 
             # populate map from sensor poitn of view
-            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor.p, self.rooms[sensor.room_number])
+            sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor, self.rooms[sensor.room_number])
         
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
@@ -1292,7 +1292,7 @@ class Director():
 
         # draw sensors
         for sensor in self.sensors:
-            self.hax.plot(sensor.p.x, sensor.p.y, 'ok', markersize=10)
+            self.hax.plot(sensor.x, sensor.y, 'ok', markersize=10)
 
         # draw heatmap
         # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
