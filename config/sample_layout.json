@@ -89,7 +89,7 @@
             "room1": "room0", 
             "room2": "room1", 
             "door_id": "",
-            "closed": true
+            "closed": false
         },
 
         {
