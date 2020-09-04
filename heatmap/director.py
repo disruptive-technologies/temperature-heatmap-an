@@ -166,6 +166,22 @@ class Director():
 
 
     def __check_timestep(self, unixtime):
+        """
+        Check if more time than --timestep has passed since last heatmap update.
+
+        Parameters
+        ----------
+        unixtime : int
+            Seconds since 01-Jan 1970.
+
+        Returns
+        -------
+        return : bool
+            True if time to update heatmap.
+            False if we're still waiting.
+
+        """
+
         # check time since last update
         if self.last_update < 0:
             # update time to this event time
@@ -180,6 +196,11 @@ class Director():
 
 
     def __decode_json_layout(self):
+        """
+        Parse json layout file and spawn related class objects.
+
+        """
+
         # import json to dictionary
         if self.args['layout'] != None:
             path = self.args['layout']
@@ -348,6 +369,11 @@ class Director():
 
 
     def __reset_pathfinding_variables(self):
+        """
+        Reset room, corner and door variables to their initial state.
+
+        """
+
         for room in self.rooms:
             for corner in room.corners:
                 corner.dmin = None
@@ -363,6 +389,12 @@ class Director():
 
 
     def __eucledian_map_debug(self):
+        """
+        Debug version of the eucledian distance mapping routine.
+        Does the same as __eucledian_map_threaded(), but without multithreading.
+
+        """
+
         # iterate sensors
         for i, sensor in enumerate(self.sensors):
             # initialise sensor distance map
@@ -536,6 +568,31 @@ class Director():
 
 
     def __find_shortest_paths(self, start, room, path, doors, dr):
+        """
+        Recursively find the shortest path from sensor to every corner in layout.
+
+        Parameters
+        ----------
+        start : object
+            Point object of were we currently have point of view.
+        room : object
+            Room object of which room we are currently in.
+        path : list
+            List of previously visited points in the current recursive branch.
+        doors : list
+            List of doors which have been passed through in the current recursive branch.
+        dr : float
+            Total distance traveled from initial sensor start location.
+
+        Returns
+        -------
+        path : list
+            List of visited points in the current recursive branch, including current.
+        doors : list
+            List of doors which have been passed through in the current recursive branch.
+
+        """
+
         # append path with active node
         path.append(start)
 
@@ -592,12 +649,25 @@ class Director():
 
 
     def __get_corner_candidates(self, start, room):
+        """
+        Return a list of corners which can be used as next step in recursive __find_shortest_paths().
+
+        Parameters
+        ----------
+        start : object
+            Point object of were we currently have point of view.
+        room : object
+            Room object of which room we are currently in.
+
+        Returns
+        -------
+        candidates : list
+            List of corners in room which can be used for next recursive step.
+
+        """
+
         # initialise list
         candidates = []
-
-        # reset start dx dy
-        # start.dx = 0
-        # start.dy = 0
 
         # iterate corners in room
         for i, corner in enumerate(room.corners):
@@ -619,6 +689,23 @@ class Director():
 
 
     def __get_door_candidates(self, start, room):
+        """
+        Return a list of doors which can be passed through as next step in recursive __find_shortest_paths().
+
+        Parameters
+        ----------
+        start : object
+            Point object of were we currently have point of view.
+        room : object
+            Room object of which room we are currently in.
+
+        Returns
+        -------
+        candidates : list
+            List of doors in room which can be passed through.
+
+        """
+
         # initialise list
         candidates = []
 
@@ -684,9 +771,30 @@ class Director():
         return True
 
 
-    def __line_intersects(self, p1,q1,p2,q2): 
-        # Find the 4 orientations required for  
-        # the general and special cases 
+    def __line_intersects(self, p1, q1, p2, q2): 
+        """
+        Determine if two lines intersect in 2-D space.
+
+        Parameters
+        ----------
+        p1 : float
+            x-coordinate of first line.
+        q1 : float
+            y-coordinate of first line.
+        p2 : float
+            x-coordinate of second line.
+        q2 : float
+            y-coordinate of second line.
+
+        Returns
+        -------
+        return : bool
+            True if lines intersect.
+            False if no intersect.
+
+        """
+
+        # find the 4 orientations required for the general and special cases 
         o1 = self.__orientation(p1, q1, p2) 
         o2 = self.__orientation(p1, q1, q2) 
         o3 = self.__orientation(p2, q2, p1) 
@@ -696,7 +804,7 @@ class Director():
         if ((o1 != o2) and (o3 != o4)): 
             return True
     
-        # Special Cases 
+        # special Cases 
       
         # p1 , q1 and p2 are colinear and p2 lies on segment p1q1 
         if ((o1 == 0) and self.__on_segment(p1, p2, q1)): 
@@ -714,36 +822,69 @@ class Director():
         if ((o4 == 0) and self.__on_segment(p2, q1, q2)): 
             return True
       
-        # If none of the cases 
+        # if none of the cases 
         return False
 
 
     def __orientation(self, p, q, r): 
-        # to find the orientation of an ordered triplet (p,q,r) 
-        # function returns the following values: 
-        # 0 : Colinear points 
-        # 1 : Clockwise points 
-        # 2 : Counterclockwise 
-          
-        # See https://www.geeksforgeeks.org/orientation-3-ordered-points/amp/  
-        # for details of below formula.  
+        """
+        Find the orientation of an ordered triplet (p,q,r) function.
+        See https://www.geeksforgeeks.org/orientation-3-ordered-points/amp/ for details.
+
+        Parameters
+        ----------
+        p : float
+            First triplet index.
+        q : float
+            Second triplet index.
+        r : float
+            Third triplet index.
+
+        Returns
+        -------
+        return : int
+            0 if colinear points 
+            1 if clockwise points 
+            2 if counterclockwise 
+
+        """
           
         val = (float(q.y - p.y) * (r.x - q.x)) - (float(q.x - p.x) * (r.y - q.y)) 
+
         if (val > 0): 
-              
             # Clockwise orientation 
             return 1
+
         elif (val < 0): 
-              
             # Counterclockwise orientation 
             return 2
+
         else: 
-              
             # Colinear orientation 
             return 0
 
 
     def __on_segment(self, p, q, r): 
+        """
+        Determine if q is on the segment p-r.
+
+        Parameters
+        ----------
+        p : float
+            First triplet index.
+        q : float
+            Second triplet index.
+        r : float
+            Third triplet index.
+
+        Returns
+        -------
+        return : bool
+            True if on segment.
+            False if not on segment.
+
+        """
+
         if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and 
                (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))): 
             return True
@@ -751,6 +892,28 @@ class Director():
 
 
     def __corner_offset(self, corners, i, eps=1/1e3):
+        """
+        Generate a tiny offset in corner convex direction.
+
+        Parameters
+        ----------
+        corners : list
+            List of corner objects in a room.
+        i : int
+            Index of current corner of interest in corner list.
+        eps : float
+            Distance of offset. Should be small.
+
+        Returns
+        -------
+        x_offset : float
+            Offset in the x-direction.
+        y_offset : float
+            Offset in the y-direction.
+
+        """
+
+        # circular buffer behavior for list edges
         il = i - 1
         if il < 0:
             il = -1
@@ -758,13 +921,16 @@ class Director():
         if ir > len(corners) - 1:
             ir = 0
 
+        # isolate corner triplet around corner of interest
         pl = corners[il]
         pc = corners[i]
         pr = corners[ir]
 
+        # get complex direction of corner triplet
         mx = np.sign(((pc.x - pl.x) + (pc.x - pr.x)) / 2)
         my = np.sign(((pc.y - pl.y) + (pc.y - pr.y)) / 2)
 
+        # plot for debugging purposes
         if 0:
             plt.cla()
             for room in self.rooms:
@@ -778,10 +944,19 @@ class Director():
             plt.plot([pc.x, pc.x+mx], [pc.y, pc.y+my], 'o--k')
             plt.waitforbuttonpress()
 
-        return mx*eps, my*eps
+        # multiply by epsilon
+        x_offset = mx * eps
+        y_offset = my * eps
+
+        return x_offset, y_offset
 
 
     def update_heatmap(self):
+        """
+        Using calculated distance- and door maps, update heatmap with temperature data.
+
+        """
+
         # iterate x- and y-axis axis
         for x, gx in enumerate(self.x_interp):
             for y, gy in enumerate(self.y_interp):
@@ -885,6 +1060,11 @@ class Director():
 
 
     def __initialise_stream_temperatures(self):
+        """
+        When initialising a stream, set initial sensor temperature values as last value reported.
+
+        """
+
         # get list of sensors in project
         device_list_url = "{}/projects/{}/devices".format(self.api_url_base, self.project_id)
 
@@ -1130,5 +1310,4 @@ class Director():
                 plt.waitforbuttonpress()
         else:
             plt.pause(0.01)
-
 
