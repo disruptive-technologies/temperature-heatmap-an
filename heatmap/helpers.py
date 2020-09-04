@@ -112,15 +112,43 @@ def loop_progress(i_track, i, n_max, n_steps, name=None, acronym=' '):
 
 
 def eucledian_distance(x1, y1, x2, y2):
+    """
+    Find eucledian distance between to points (x1, y1) and (x2, y2).
+
+    Parameters
+    ----------
+    x1 : float
+        x-coordinate of first point.
+    y1 : float
+        y-coordinate of first point.
+    x2 : float
+        x-coordinate of second point.
+    y2 : float
+        y-coordinate of second point.
+
+    Returns
+    -------
+    return : float
+        Distance between pint (x1, y1) and (x2, y2).
+
+    """
+
     return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
 def write_pickle(obj, path, cout=True):
-    """ write an object to pickle
+    """
+    Write an object to pickle file.
 
-    arguments:
-    obj:    object to be written
-    path:   path to which the object is written
+    Parameters
+    ----------
+    obj : object
+        Object, dictionary or array to be written.
+    path : str
+        Absolute path to write.
+    cout : bool
+        Prints to console if True.
+
     """
 
     with open(path, 'wb') as output:  # overwrites
@@ -130,10 +158,21 @@ def write_pickle(obj, path, cout=True):
 
 
 def read_pickle(path, cout=True):
-    """ read a pickle to an object
+    """
+    Read a pickle file to object.
 
-    arguments:
-    path:   path to the pickle
+    Parameters
+    ----------
+    path : str
+        Absolute path to write.
+    cout : bool
+        Prints to console if True.
+
+    Returns
+    -------
+    return : object
+        Object read from pickle file.
+
     """
 
     if os.path.exists(path):
@@ -157,6 +196,21 @@ def read_pickle(path, cout=True):
 
 
 def import_json(path):
+    """
+    Read .json file to dictionary.
+
+    Parameters
+    ----------
+    path : str
+        Absolute path to .json file.
+
+    Returns
+    -------
+    return : dict
+        Dictionary created from .json file.
+
+    """
+
     # verify path exists
     if not os.path.exists(path):
         print_error('Invalid path {}.'.format(path), terminate=True)
