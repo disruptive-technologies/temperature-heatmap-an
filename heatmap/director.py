@@ -1,6 +1,5 @@
 # packages
 import os
-import sys
 import json
 import time
 import requests
@@ -18,7 +17,6 @@ from matplotlib.colors   import Normalize
 # project
 import heatmap.helpers     as hlp
 import heatmap.miniclasses as mcl
-import config.layout       as layout
 
 
 class Director():
@@ -74,8 +72,6 @@ class Director():
 
         # inherit rooms layout
         self.__decode_json_layout()
-        sys.exit()
-        self.__deconstruct_layout()
 
         # get limits for x- and y- axes
         self.__generate_bounding_box()
@@ -143,7 +139,7 @@ class Director():
         if 'temperature' in event_data['data'].keys():
             # check if sensor is in this room
             for sensor in self.sensors:
-                if source_id == sensor.name:
+                if source_id == sensor.sensor_id:
                     # give data to room
                     sensor.new_event_data(event_data)
                     if cout: print('-- New temperature {} for {} at [{}, {}].'.format(event_data['data']['temperature']['value'], source_id, sensor.x, sensor.y))
@@ -151,7 +147,7 @@ class Director():
         elif 'objectPresent' in event_data['data']:
             # find correct door
             for door in self.doors:
-                if source_id == door.name:
+                if source_id == door.door_id:
                     # give state to door
                     door.new_event_data(event_data)
                     if cout: print('-- New door state {} for {} at [{}, {}].'.format(event_data['data']['objectPresent']['state'], source_id, door.x, door.y))
@@ -174,29 +170,75 @@ class Director():
 
 
     def __decode_json_layout(self):
-        pass
+        # import json to dictionary
+        jdict = hlp.import_json(self.args['layout'])
 
+        # count rooms and doors
+        n_rooms = len(jdict['rooms'])
+        n_doors = len(jdict['doors'])
 
-    def __deconstruct_layout(self):
-        # give rooms list to self
-        self.rooms = layout.rooms
-        self.doors = layout.doors
+        # initialise object lists
+        self.rooms   = [mcl.Room() for i in range(len(jdict['rooms']))]
+        self.doors   = [mcl.Door() for i in range(len(jdict['doors']))]
 
-        # give some kind of identifier to doors
-        for i, door in enumerate(self.doors):
-            door.number = i
+        # get rooms in dict
+        for ri in range(n_rooms):
+            # isolate room
+            jdict_room = jdict['rooms'][ri]
 
-        # generate list of sensor objects
+            # count corners and sensors
+            n_corners = len(jdict_room['corners'])
+            n_sensors = len(jdict_room['sensors'])
+
+            # adopt name
+            self.rooms[ri].name = jdict_room['name']
+
+            # give room list of corner and sensor objects
+            self.rooms[ri].corners = [mcl.Corner() for i in range(n_corners)]
+            self.rooms[ri].sensors = [mcl.Sensor() for i in range(n_sensors)]
+
+            # update corners
+            for ci in range(n_corners):
+                # isolate json corner and give to room corner
+                jdict_corner = jdict_room['corners'][ci]
+                self.rooms[ri].corners[ci].give_coordinates(x=jdict_corner['x'], y=jdict_corner['y'])
+
+            # update sensors
+            for si in range(n_sensors):
+                # isolate json sensor and give to room sensor
+                jdict_sensor = jdict_room['sensors'][si]
+                self.rooms[ri].sensors[si].update_variables(jdict_sensor['x'], jdict_sensor['y'], jdict_sensor['sensor_id'], room_number=ri)
+
+        # get doors in dict
+        for di in range(n_doors):
+            # isolate doors
+            jdict_door = jdict['doors'][di]
+
+            # find rooms which door connects
+            r1 = None
+            r2 = None
+            for room in self.rooms:
+                if room.name == jdict_door['room1']:
+                    r1 = room
+                if room.name == jdict_door['room2']:
+                    r2 = room
+
+            # exit if rooms not found. Error in layout.
+            if r1 == None or r2 == None:
+                hlp.print_error('Error in layout. Door [{}] not connected to [{}] and [{}].'.format(jdict_door['name'], jdict_door['room1'], jdict_door['room2']), terminate=True)
+
+            # reformat for easier updating
+            p1 = [jdict_door['p1']['x'], jdict_door['p1']['y']]
+            p2 = [jdict_door['p2']['x'], jdict_door['p2']['y']]
+
+            # give variables to door object
+            self.doors[di].update_variables(p1, p2, r1, r2, jdict_door['door_id'], di)
+
+        # adopt all sensors to self
         self.sensors = []
-        for i, room in enumerate(self.rooms):
+        for room in self.rooms:
             for sensor in room.sensors:
-                # append object to own list
                 self.sensors.append(sensor)
-
-                # give room number to sensor
-                sensor.room_number = i
-
-        # save number of sensors
         self.n_sensors = len(self.sensors)
 
 
@@ -788,7 +830,7 @@ class Director():
         # iterate devices
         for sensor in project_sensors:
             # isolate id
-            sensor_id = sensor.name
+            sensor_id = sensor.sensor_id
 
             # some printing
             print('-- Getting event history for {}'.format(sensor_id))
@@ -829,11 +871,11 @@ class Director():
 
             if 'temperature' in device['reported']:
                 for sensor in self.sensors:
-                    if name == sensor.name:
+                    if name == sensor.sensor_id:
                         sensor.t = device['reported']['temperature']['value']
             elif 'objectPresent' in device['reported']:
                 for door in self.doors:
-                    if name == door.name:
+                    if name == door.door_id:
                         state = device['reported']['objectPresent']['state']
                         if state == 'PRESENT':
                             door.closed = True

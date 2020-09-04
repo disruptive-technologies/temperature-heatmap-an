@@ -1,6 +1,7 @@
 # packages
 import os
 import sys
+import json
 import pickle
 import numpy  as np
 import pandas as pd
@@ -153,4 +154,16 @@ def read_pickle(path, cout=True):
         print('\nCould not find pickle at [ ' + path + ' ]')
     print('Terminating...\n')
     sys.exit()
+
+
+def import_json(path):
+    # verify path exists
+    if not os.path.exists(path):
+        print_error('Invalid path {}.'.format(path), terminate=True)
+
+    # read from file
+    with open(path) as f:
+        d = json.load(f)
+
+    return d
 
