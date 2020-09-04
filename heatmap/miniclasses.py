@@ -58,6 +58,7 @@ class Door():
         self.room2 = None
         self.door_id = None
         self.closed = False
+        self.outbound_room = None
 
     
     def update_variables(self, p1, p2, room1, room2, door_id, number):
@@ -98,14 +99,18 @@ class Sensor():
         self.y = y
         self.t = t
         self.p = None
+        self.sensor_id = None
 
 
-    def update_variables(self, x, y, sensor_id, room_number):
+    def update_variables(self, x, y, sensor_id, room_number, t=None):
         # give to self
         self.x    = x
         self.y    = y
         self.sensor_id = sensor_id
         self.room_number = room_number
+
+        if t != None:
+            self.t = t
 
         # make point
         self.p = Point(x, y)

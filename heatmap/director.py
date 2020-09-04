@@ -1,5 +1,6 @@
 # packages
 import os
+import sys
 import json
 import time
 import requests
@@ -60,6 +61,7 @@ class Director():
 
         # variables
         self.last_update = -1
+        self.sample      = False
 
         # set stream endpoint
         self.stream_endpoint = "{}/projects/{}/devices:stream".format(self.api_url_base, self.project_id)
@@ -85,6 +87,14 @@ class Director():
         # spawn heatmap
         self.heatmap = np.zeros(shape=self.X.shape)
 
+        # check if sample is set
+        if self.sample:
+            print('\nUsing sample layout. No historic- of streaming data will be used.')
+            print('For this, provide a layout using the --layout argument.')
+            self.update_heatmap()
+            self.plot_heatmap(show=True)
+            sys.exit()
+
 
     def __parse_sysargs(self):
         """
@@ -99,10 +109,10 @@ class Director():
         now = (datetime.datetime.utcnow().replace(microsecond=0)).isoformat() + 'Z'
 
         # general arguments
-        parser.add_argument('--layout',    help='Json file with room layout.', required=True)
-        parser.add_argument('--starttime', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
-        parser.add_argument('--endtime',   help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
-        parser.add_argument('--timestep',  help='Heatmap update period.',      required=False, default=3600, type=int)
+        parser.add_argument('--layout',    metavar='', help='Json file with room layout.', required=False)
+        parser.add_argument('--starttime', metavar='', help='Event history UTC starttime [YYYY-MM-DDTHH:MM:SSZ].', required=False, default=now)
+        parser.add_argument('--endtime',   metavar='', help='Event history UTC endtime [YYYY-MM-DDTHH:MM:SSZ].',   required=False, default=now)
+        parser.add_argument('--timestep',  metavar='', help='Heatmap update period.',      required=False, default=3600, type=int)
 
         # boolean flags
         parser.add_argument('--plot',  action='store_true', help='Plot the estimated desk occupancy.')
@@ -171,7 +181,12 @@ class Director():
 
     def __decode_json_layout(self):
         # import json to dictionary
-        jdict = hlp.import_json(self.args['layout'])
+        if self.args['layout'] != None:
+            path = self.args['layout']
+        else:
+            path = os.path.join(os.path.join(os.path.dirname(__file__), '..'), 'config', 'sample_layout.json')
+            self.sample = True
+        jdict = hlp.import_json(path)
 
         # count rooms and doors
         n_rooms = len(jdict['rooms'])
@@ -209,6 +224,10 @@ class Director():
                 jdict_sensor = jdict_room['sensors'][si]
                 self.rooms[ri].sensors[si].update_variables(jdict_sensor['x'], jdict_sensor['y'], jdict_sensor['sensor_id'], room_number=ri)
 
+                # give t0 if exists
+                if 't0' in jdict_sensor:
+                    self.rooms[ri].sensors[si].t = jdict_sensor['t0']
+
         # get doors in dict
         for di in range(n_doors):
             # isolate doors
@@ -233,6 +252,10 @@ class Director():
 
             # give variables to door object
             self.doors[di].update_variables(p1, p2, r1, r2, jdict_door['door_id'], di)
+
+            # give state if it exists
+            if 'closed' in jdict_door:
+                self.doors[di].closed = jdict_door['closed']
 
         # adopt all sensors to self
         self.sensors = []
@@ -360,8 +383,8 @@ class Director():
 
             # populate map from sensor poitn of view
             sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor.p, self.rooms[sensor.room_number])
-            if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.N*10])
+            if 1:
+                self.plot_debug(start=sensor.p, grid=[sensor.D])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
@@ -374,8 +397,8 @@ class Director():
                             sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, offset_node, room)
 
                             # plot population process
-                            if 0:
-                                self.plot_debug(start=sensor.p, grid=[sensor.N*10], paths=offset_node.shortest_path)
+                            if 1:
+                                self.plot_debug(start=sensor.p, grid=[sensor.D], paths=offset_node.shortest_path)
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
@@ -384,12 +407,12 @@ class Director():
                         sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, corner, room)
 
                         # plot population process
-                        if 0:
-                            self.plot_debug(start=sensor.p, grid=[sensor.N*10], paths=corner.shortest_path)
+                        if 1:
+                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
 
             # plot population result
-            if 0:
-                self.plot_debug(start=sensor.p, grid=[sensor.N*10])
+            if 1:
+                self.plot_debug(start=sensor.p, grid=[sensor.D])
 
 
     def __eucledian_map_threaded(self):
@@ -765,6 +788,7 @@ class Director():
                 # reset lists
                 temperatures = []
                 distances    = []
+                weights      = []
 
                 # iterate sensors
                 for room in self.rooms:
@@ -784,8 +808,10 @@ class Director():
                 # do nothing if no valid distances
                 if len(distances) == 0:
                     self.heatmap[y, x] = None
+                    print('1: {}'.format(self.heatmap[y, x]))
                 elif len(distances) == 1:
                     self.heatmap[y, x] = temperatures[0]
+                    print('2: {}'.format(self.heatmap[y, x]))
                 else:
                     # calculate weighted average
                     weights = (1/(np.array(distances)))**2
@@ -793,7 +819,10 @@ class Director():
                     
                     # update mesh
                     self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
-
+                    print('3: {}'.format(self.heatmap[y, x]))
+                print(self.heatmap[y, x])
+                print()
+                
 
     def __set_filters(self):
         """
@@ -930,6 +959,10 @@ class Director():
 
         """
 
+        # do nothing if sample
+        if self.sample:
+            return
+
         # if no history were used, get last events from sensors
         if not self.fetch_history:
             self.__initialise_stream_temperatures()
@@ -1059,7 +1092,7 @@ class Director():
         self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=self.t_range[0], vmax=self.t_range[1]), cmap=cm.jet))
 
 
-    def plot_heatmap(self, update_time='', blocking=True):
+    def plot_heatmap(self, update_time='', blocking=True, show=False):
         # initialise if not open
         if not hasattr(self, 'hax') or not plt.fignum_exists(self.hfig.number):
             self.initialise_heatmap_plot()
@@ -1078,9 +1111,9 @@ class Director():
         # draw doors
         for door in self.doors:
             if door.closed:
-                self.hax.plot(door.xx, door.yy, '--r', linewidth=8)
+                self.hax.plot(door.xx, door.yy, '-r', linewidth=8)
             else:
-                self.hax.plot(door.xx, door.yy, '--g', linewidth=8)
+                self.hax.plot(door.xx, door.yy, '-g', linewidth=8)
 
         # draw sensors
         for sensor in self.sensors:
@@ -1096,7 +1129,10 @@ class Director():
         plt.tight_layout()
         
         if blocking:
-            plt.waitforbuttonpress()
+            if show:
+                plt.show()
+            else:
+                plt.waitforbuttonpress()
         else:
             plt.pause(0.01)
 
