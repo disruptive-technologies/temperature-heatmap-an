@@ -1,10 +1,11 @@
 
 
 class Room():
-    def __init__(self, corners, sensors):
-        # give to self
-        self.corners = corners
-        self.sensors = sensors
+    def __init__(self):
+        # initialise variables
+        self.corners = None
+        self.sensors = None
+        self.name    = None
 
 
     def get_outline(self):
@@ -33,25 +34,44 @@ class Line():
 
 
 class Corner(Point):
-    def __init__(self, x, y):
-        # inherit point
-        Point.__init__(self, x, y)
+    def __init__(self, x=None, y=None):
+        # give to self
+        self.x = x
+        self.y = y
 
-        # variables
+        # initialise variables
         self.unused = True
         self.shortest_path = []
 
 
+    def give_coordinates(self, x, y):
+        # inherit point
+        Point.__init__(self, x, y)
+
+
 class Door():
-    def __init__(self, p1, p2, room1, room2, name=None, closed=False):
+    def __init__(self):
+        # initialise variables
+        self.p1 = None
+        self.p2 = None
+        self.room1 = None
+        self.room2 = None
+        self.door_id = None
+        self.closed = False
+        self.outbound_room = None
+
+    
+    def update_variables(self, p1, p2, room1, room2, door_id, number):
         # inherit Line
         Line.__init__(self, Point(p1[0], p1[1]), Point(p2[0], p2[1]))
 
         # give to self
+        self.p1     = Point(p1[0], p1[1])
+        self.p2     = Point(p2[0], p2[1])
         self.room1  = room1
         self.room2  = room2
-        self.name   = name
-        self.closed = closed
+        self.name   = door_id
+        self.number = number
 
         # variables
         self.unused = True
@@ -73,12 +93,24 @@ class Door():
 
 
 class Sensor():
-    def __init__(self, x, y, name, t0=None):
+    def __init__(self, x=None, y=None, t=None):
+        # initialise variables
+        self.x = x
+        self.y = y
+        self.t = t
+        self.p = None
+        self.sensor_id = None
+
+
+    def update_variables(self, x, y, sensor_id, room_number, t=None):
         # give to self
         self.x    = x
         self.y    = y
-        self.name = name
-        self.t    = t0
+        self.sensor_id = sensor_id
+        self.room_number = room_number
+
+        if t != None:
+            self.t = t
 
         # make point
         self.p = Point(x, y)
