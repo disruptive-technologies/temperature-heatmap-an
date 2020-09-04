@@ -455,7 +455,7 @@ class Director():
             for ri, room in enumerate(self.rooms):
                 # fill from doors
                 for di, door in enumerate(self.doors):
-                    print('Sensor {}, Room {}, Door {}'.format(i, ri, di))
+                    print('Mapping Grid for Sensor {:>3}, Room {:>3},   Door {:>3}'.format(i, ri, di))
                     if door.outbound_room == room:
                         offset_node = door.outbound_offset
                         if len(offset_node.shortest_path) > 0:
@@ -463,7 +463,7 @@ class Director():
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
-                    print('Sensor {}, Room {}, Corner {}'.format(i, ri, ci))
+                    print('Mapping Grid for Sensor {:>3}, Room {:>3}, Corner {:>3}'.format(i, ri, ci))
                     if len(corner.shortest_path) > 0:
                         sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, corner, room)
 
@@ -808,10 +808,8 @@ class Director():
                 # do nothing if no valid distances
                 if len(distances) == 0:
                     self.heatmap[y, x] = None
-                    print('1: {}'.format(self.heatmap[y, x]))
                 elif len(distances) == 1:
                     self.heatmap[y, x] = temperatures[0]
-                    print('2: {}'.format(self.heatmap[y, x]))
                 else:
                     # calculate weighted average
                     weights = (1/(np.array(distances)))**2
@@ -819,9 +817,6 @@ class Director():
                     
                     # update mesh
                     self.heatmap[y, x] = sum(weights*temperatures) / sum(weights)
-                    print('3: {}'.format(self.heatmap[y, x]))
-                print(self.heatmap[y, x])
-                print()
                 
 
     def __set_filters(self):
