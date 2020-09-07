@@ -127,5 +127,9 @@
             "door_id": "",
             "closed": false
         }
+    ],
+
+    "oofs": [
+
     ]
 }

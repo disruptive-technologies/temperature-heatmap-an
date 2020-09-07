@@ -62,6 +62,7 @@ class Director():
         # variables
         self.last_update = -1
         self.sample      = False
+        self.cc = 0
 
         # set stream endpoint
         self.stream_endpoint = "{}/projects/{}/devices:stream".format(self.api_url_base, self.project_id)
@@ -148,7 +149,7 @@ class Director():
         # verify temperature event
         if 'temperature' in event_data['data'].keys():
             # check if sensor is in this room
-            for sensor in self.sensors:
+            for sensor in self.sensors + self.oofs:
                 if source_id == sensor.sensor_id:
                     # give data to room
                     sensor.new_event_data(event_data)
@@ -157,7 +158,7 @@ class Director():
         elif 'objectPresent' in event_data['data']:
             # find correct door
             for door in self.doors:
-                if source_id == door.door_id:
+                if source_id == door.sensor_id:
                     # give state to door
                     door.new_event_data(event_data)
                     if cout: print('-- New door state {} for {} at [{}, {}].'.format(event_data['data']['objectPresent']['state'], source_id, door.x, door.y))
@@ -272,11 +273,12 @@ class Director():
             p2 = [jdict_door['p2']['x'], jdict_door['p2']['y']]
 
             # give variables to door object
-            self.doors[di].post_initialise(p1, p2, r1, r2, jdict_door['door_id'], di)
+            self.doors[di].post_initialise(p1, p2, r1, r2, jdict_door['sensor_id'], di)
 
             # give state if it exists
             if 'closed' in jdict_door:
                 self.doors[di].closed = jdict_door['closed']
+
 
         # adopt all sensors to self
         self.sensors = []
@@ -284,6 +286,12 @@ class Director():
             for sensor in room.sensors:
                 self.sensors.append(sensor)
         self.n_sensors = len(self.sensors)
+
+        # get objects of interest in dict
+        n_oofs    = len(jdict['oofs'])
+        self.oofs = [mcl.Sensor(x=None, y=None) for i in range(n_oofs)]
+        for i, oof in enumerate(jdict['oofs']):
+            self.oofs[i].post_initialise(x=oof['x'], y=oof['y'], sensor_id=oof['sensor_id'], room_number=None)
 
 
     def __generate_bounding_box(self):
@@ -564,7 +572,7 @@ class Director():
 
             # shouldn't happen, but just in case
             if not found:
-                hlp.print_error('Pickle at [{}] does not exist.'.format(pickle_path), terminate=True)
+                hlp.print_error('Pickle at [{}] does not exist. Try running without --read.'.format(pickle_path), terminate=True)
 
 
     def __find_shortest_paths(self, start, room, path, doors, dr):
@@ -1024,12 +1032,16 @@ class Director():
         self.event_history = []
 
         # combine temperature- and door sensors
-        project_sensors = [s for s in self.sensors] + [d for d in self.doors if d.name is not None]
+        project_sensors = [s for s in self.sensors] + [d for d in self.doors] + [o for o in self.oofs]
 
         # iterate devices
         for sensor in project_sensors:
             # isolate id
             sensor_id = sensor.sensor_id
+
+            # skip sensors without id
+            if sensor_id is None:
+                continue
 
             # some printing
             print('-- Getting event history for {}'.format(sensor_id))
@@ -1074,12 +1086,12 @@ class Director():
             name = os.path.basename(device['name'])
 
             if 'temperature' in device['reported']:
-                for sensor in self.sensors:
+                for sensor in self.sensors + self.oofs:
                     if name == sensor.sensor_id:
                         sensor.t = device['reported']['temperature']['value']
             elif 'objectPresent' in device['reported']:
                 for door in self.doors:
-                    if name == door.door_id:
+                    if name == door.sensor_id:
                         state = device['reported']['objectPresent']['state']
                         if state == 'PRESENT':
                             door.closed = True
@@ -1264,6 +1276,8 @@ class Director():
 
     def initialise_heatmap_plot(self):
         self.hfig, self.hax = plt.subplots()
+        self.hfig.set_figheight(self.ylim[1]-self.ylim[0])
+        self.hfig.set_figwidth(self.xlim[1]-self.xlim[0])
         self.hfig.colorbar(cm.ScalarMappable(norm=Normalize(vmin=self.t_range[0], vmax=self.t_range[1]), cmap=cm.jet))
 
 
@@ -1285,29 +1299,40 @@ class Director():
 
         # draw doors
         for door in self.doors:
+            self.hax.plot(door.xx, door.yy, '-k', linewidth=14)
             if door.closed:
-                self.hax.plot(door.xx, door.yy, '-r', linewidth=8)
+                self.hax.plot(door.xx, door.yy, '-', color='orangered', linewidth=8)
             else:
-                self.hax.plot(door.xx, door.yy, '-g', linewidth=8)
+                self.hax.plot(door.xx, door.yy, '-', color='limegreen', linewidth=8)
 
         # draw sensors
         for sensor in self.sensors:
             self.hax.plot(sensor.x, sensor.y, 'ok', markersize=10)
 
         # draw heatmap
-        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, self.t_range[1]-self.t_range[0], cmap=cm.jet)
-        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, (self.t_range[1]-self.t_range[0])*3, cmap=cm.jet)
+        # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
         pc.set_clim(self.t_range[0], self.t_range[1])
+
+        # draw oofs
+        # for oof in self.oofs:
+        #     t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
+        #     self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=15)
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.tight_layout()
-        
-        if blocking:
-            if show:
-                plt.show()
-            else:
-                plt.waitforbuttonpress()
+        plt.axis('off')
+        # plt.tight_layout()
+
+        if 1:
+            self.hfig.savefig('/home/kepler/tmp/' + '{:09d}.png'.format(self.cc), dpi=self.hfig.dpi, bbox_inches='tight')
+            self.cc += 1
         else:
-            plt.pause(0.01)
+            if blocking:
+                if show:
+                    plt.show()
+                else:
+                    plt.waitforbuttonpress()
+            else:
+                plt.pause(0.01)
 

@@ -9,6 +9,7 @@
                 {"x":  5.5, "y": 0.0}
             ],
             "sensors": [
+                {"x": 0.2, "y": 3.8, "sensor_id": "bhnc1mut96bg00812alg"},
                 {"x": 3.0, "y": 0.1, "sensor_id": "bjeicju7kro000cp0l8g"}
             ]
         },
@@ -56,7 +57,8 @@
                 {"x": 18.5, "y": 6.0}
             ],
             "sensors": [
-                {"x":11.1, "y": 7.5, "sensor_id": "bjei8odntbig00e43gr0"}
+                {"x":11.1, "y": 7.5, "sensor_id": "bjei8odntbig00e43gr0"},
+                {"x":15.4, "y":10.5, "sensor_id": "bfuj6v8lq8r000ela7c0"}
             ]
         },
 
@@ -162,7 +164,7 @@
             "p2": {"x": 5.5, "y": 4.0}, 
             "room1": "room1", 
             "room2": "room0", 
-            "door_id": "bh3d3dl7rihlu0c3dm10"
+            "sensor_id": "bh3d3dl7rihlu0c3dm10"
         },
 
         {
@@ -170,7 +172,7 @@
             "p2": {"x":17.0, "y": 6.0}, 
             "room1": "room1", 
             "room2": "room2", 
-            "door_id": "bh3d3ed7rihlu0c3du90"
+            "sensor_id": "bh3d3ed7rihlu0c3du90"
         },
 
         {
@@ -178,7 +180,7 @@
             "p2": {"x":28.0, "y": 4.0}, 
             "room1": "room1", 
             "room2": "room3", 
-            "door_id": "bh3d3dl7rihlu0c3djs0"
+            "sensor_id": "bh3d3dl7rihlu0c3djs0"
         },
 
         {
@@ -186,7 +188,7 @@
             "p2": {"x":30.5, "y": 4.0}, 
             "room1": "room1", 
             "room2": "room4", 
-            "door_id": "bh3d3dl7rihlu0c3djvg"
+            "sensor_id": "bh3d3dl7rihlu0c3djvg"
         },
 
         {
@@ -194,7 +196,7 @@
             "p2": {"x":31.5, "y": 4.0}, 
             "room1": "room1", 
             "room2": "room5", 
-            "door_id": "bh3d3dt7rihlu0c3dolg"
+            "sensor_id": "bh3d3dt7rihlu0c3dolg"
         },
 
         {
@@ -202,7 +204,7 @@
             "p2": {"x":33.0, "y": 5.0}, 
             "room1": "room1", 
             "room2": "room6", 
-            "door_id": "bh3d3f57rihlu0c3e5mg"
+            "sensor_id": "bh3d3f57rihlu0c3e5mg"
         },
 
         {
@@ -210,7 +212,7 @@
             "p2": {"x":31.0, "y": 6.0}, 
             "room1": "room1", 
             "room2": "room7", 
-            "door_id": "bh3d3cl7rihlu0c3d820"
+            "sensor_id": "bh3d3cl7rihlu0c3d820"
         },
 
         {
@@ -218,7 +220,7 @@
             "p2": {"x": 8.0, "y": 6.0}, 
             "room1": "room1", 
             "room2": "room8", 
-            "door_id": "bh3d3dt7rihlu0c3dp1g"
+            "sensor_id": "bh3d3dt7rihlu0c3dp1g"
         },
 
         {
@@ -226,7 +228,12 @@
             "p2": {"x":32.5, "y": 6.0}, 
             "room1": "room1", 
             "room2": "room9", 
-            "door_id": "bh3d3dd7rihlu0c3dif0"
+            "sensor_id": "bh3d3dd7rihlu0c3dif0"
         }
+    ],
+
+    "oofs": [
+        {"x": 17.5, "y": 8.3, "sensor_id": "bhnba79qitfg008o2d50"},
+        {"x": 18.0, "y": 5.9, "sensor_id": "bjejnvgpismg008hqrrg"}
     ]
 }

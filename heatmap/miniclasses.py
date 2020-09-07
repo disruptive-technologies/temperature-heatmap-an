@@ -174,7 +174,7 @@ class Door(Line):
         self.outbound_room = None
 
     
-    def post_initialise(self, p1, p2, room1, room2, door_id, number):
+    def post_initialise(self, p1, p2, room1, room2, sensor_id, number):
         """
         Door class second-stage constructor.
         Must be called, or object will not function properly.
@@ -190,7 +190,7 @@ class Door(Line):
             Name of room on one side of the door.
         room2 : str
             Name of the other room on the other side of the door.
-        door_id : str
+        sensor_id : str
             Sensor id of door proximity sensor.
         number : int
             Door number. Must be unique.
@@ -205,7 +205,7 @@ class Door(Line):
         self.p2      = Point(p2[0], p2[1])
         self.room1   = room1
         self.room2   = room2
-        self.door_id = door_id
+        self.sensor_id = sensor_id
         self.number  = number
 
         # variables
