@@ -104,7 +104,7 @@ class Director():
         """
 
         # create parser object
-        parser = argparse.ArgumentParser(description='Desk Occupancy Estimation on Stream and Event History.')
+        parser = argparse.ArgumentParser(description='Heatmap generation on Stream and Event History.')
 
         # get UTC time now
         now = (datetime.datetime.utcnow().replace(microsecond=0)).isoformat() + 'Z'
@@ -1315,16 +1315,17 @@ class Director():
         pc.set_clim(self.t_range[0], self.t_range[1])
 
         # draw oofs
-        # for oof in self.oofs:
-        #     t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
-        #     self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=15)
+        for oof in self.oofs:
+            if oof.t is not None:
+                t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
+                self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=15)
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
         plt.axis('off')
         # plt.tight_layout()
 
-        if 1:
+        if 0:
             self.hfig.savefig('/home/kepler/tmp/' + '{:09d}.png'.format(self.cc), dpi=self.hfig.dpi, bbox_inches='tight')
             self.cc += 1
         else:
