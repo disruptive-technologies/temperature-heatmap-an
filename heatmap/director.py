@@ -293,6 +293,10 @@ class Director():
         for i, oof in enumerate(jdict['oofs']):
             self.oofs[i].post_initialise(x=oof['x'], y=oof['y'], sensor_id=oof['sensor_id'], room_number=None)
 
+            # give t0 if exists
+            if 't0' in oof:
+                self.oofs[i].t = oof['t0']
+
 
     def __generate_bounding_box(self):
         """
@@ -1274,6 +1278,37 @@ class Director():
             plt.waitforbuttonpress()
 
 
+    def initialise_construction_plot(self):
+        self.cfig, self.cax = plt.subplots()
+        self.cfig.set_figheight(self.ylim[1]-self.ylim[0])
+        self.cfig.set_figwidth(self.xlim[1]-self.xlim[0])
+        self.cax.set_xlim([self.xlim[0]-1, self.xlim[1]+1])
+        self.cax.set_ylim([self.ylim[0]-1, self.ylim[1]+1])
+        # self.cax.axis('off')
+
+
+    def plot_construction(self, terminate=False):
+        # initialise if not open
+        if not hasattr(self, 'cax') or not plt.fignum_exists(self.cfig.number):
+            self.initialise_construction_plot()
+
+        for room in self.rooms:
+            for corner in room.corners:
+                self.cax.plot(corner.x, corner.y, 'ok')
+            plt.waitforbuttonpress()
+            xx, yy = room.get_outline()
+            for i in range(len(xx)-1):
+                self.cax.plot(xx[i:i+2], yy[i:i+2], '-k', linewidth=3)
+                plt.waitforbuttonpress()
+            for sensor in room.sensors:
+                self.cax.plot(sensor.x, sensor.y, 'ok', markersize=10)
+                plt.waitforbuttonpress()
+
+
+        if terminate:
+            sys.exit()
+
+
     def initialise_heatmap_plot(self):
         self.hfig, self.hax = plt.subplots()
         self.hfig.set_figheight(self.ylim[1]-self.ylim[0])
@@ -1307,10 +1342,10 @@ class Director():
 
         # draw sensors
         for sensor in self.sensors:
-            self.hax.plot(sensor.x, sensor.y, 'ok', markersize=10)
+            self.hax.plot(sensor.x, sensor.y, 'xk', markersize=10, markeredgewidth=2.5)
 
         # draw heatmap
-        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, (self.t_range[1]-self.t_range[0])*3, cmap=cm.jet)
+        pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, (self.t_range[1]-self.t_range[0])*5, cmap=cm.jet)
         # pc = self.hax.contourf(self.X.T, self.Y.T, self.heatmap.T, 100, cmap=cm.jet)
         pc.set_clim(self.t_range[0], self.t_range[1])
 
@@ -1318,12 +1353,14 @@ class Director():
         for oof in self.oofs:
             if oof.t is not None:
                 t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
-                self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=15)
+                self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=20)
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.axis('off')
+        # plt.axis('off')
         # plt.tight_layout()
+        plt.xlabel('Distance [m]')
+        plt.ylabel('Distance [m]')
 
         if 0:
             self.hfig.savefig('/home/kepler/tmp/' + '{:09d}.png'.format(self.cc), dpi=self.hfig.dpi, bbox_inches='tight')
