@@ -9,9 +9,8 @@
                 {"x":10.0, "y": 0.0}
             ],
             "sensors": [
-                {"x": 0.5, "y": 2.5, "sensor_id": "xxxxx", "t0": 20},
-                {"x": 7.0, "y": 4.5, "sensor_id": "xxxxx", "t0": 23},
-                {"x": 9.5, "y": 0.5, "sensor_id": "xxxxx", "t0": 23}
+                {"x": 0.5, "y": 4.5, "sensor_id": "xxxxx", "t0": 23},
+                {"x": 0.5, "y": 0.5, "sensor_id": "xxxxx", "t0": 22}
             ]
         },
 
@@ -25,7 +24,7 @@
             ],
             "sensors": [
                 {"x":14.5, "y": 7.5, "sensor_id": "xxxxx", "t0": 25},
-                {"x":14.5, "y": 0.5, "sensor_id": "xxxxx", "t0": 25}
+                {"x":14.5, "y": 0.5, "sensor_id": "xxxxx", "t0": 24}
             ]
         }
     ],
@@ -37,7 +36,7 @@
             "room1": "room0", 
             "room2": "room1", 
             "sensor_id": "",
-            "closed": false
+            "closed": true
         }
     ],
 

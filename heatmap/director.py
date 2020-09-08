@@ -1350,17 +1350,17 @@ class Director():
         pc.set_clim(self.t_range[0], self.t_range[1])
 
         # draw oofs
-        for oof in self.oofs:
-            if oof.t is not None:
-                t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
-                self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=20)
+        # for oof in self.oofs:
+        #     if oof.t is not None:
+        #         t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
+        #         self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=20)
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
-        # plt.axis('off')
-        # plt.tight_layout()
-        plt.xlabel('Distance [m]')
-        plt.ylabel('Distance [m]')
+        plt.axis('off')
+        plt.tight_layout()
+        # plt.xlabel('Distance [m]')
+        # plt.ylabel('Distance [m]')
 
         if 0:
             self.hfig.savefig('/home/kepler/tmp/' + '{:09d}.png'.format(self.cc), dpi=self.hfig.dpi, bbox_inches='tight')
