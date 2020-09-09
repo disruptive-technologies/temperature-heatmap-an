@@ -13,7 +13,7 @@ API_URL_BASE  = "https://api.disruptive-technologies.com/v2"
 if __name__ == '__main__':
 
     # initialise Director instance
-    d = Director(USERNAME, PASSWORD, PROJECT_ID, API_URL_BASE, t_range=[18, 27], resolution=15)
+    d = Director(USERNAME, PASSWORD, PROJECT_ID, API_URL_BASE, t_range=[18, 27], resolution=10)
 
     # d.update_heatmap()
     # d.plot_heatmap()
