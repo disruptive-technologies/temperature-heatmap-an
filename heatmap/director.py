@@ -428,7 +428,7 @@ class Director():
             # populate map from sensor poitn of view
             sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, sensor, self.rooms[sensor.room_number])
             if 1:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+                self.plot_debug(start=sensor, grid=[sensor.D])
 
             # populate grid with distances from each corner
             for ri, room in enumerate(self.rooms):
@@ -442,7 +442,7 @@ class Director():
 
                             # plot population process
                             if 1:
-                                self.plot_debug(start=sensor.p, grid=[sensor.D], paths=offset_node.shortest_path)
+                                self.plot_debug(start=sensor, grid=[sensor.D], paths=offset_node.shortest_path)
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
@@ -452,11 +452,11 @@ class Director():
 
                         # plot population process
                         if 1:
-                            self.plot_debug(start=sensor.p, grid=[sensor.D], paths=corner.shortest_path)
+                            self.plot_debug(start=sensor, grid=[sensor.D], paths=corner.shortest_path)
 
             # plot population result
             if 1:
-                self.plot_debug(start=sensor.p, grid=[sensor.D])
+                self.plot_debug(start=sensor, grid=[sensor.D])
 
 
     def __eucledian_map_threaded(self):
