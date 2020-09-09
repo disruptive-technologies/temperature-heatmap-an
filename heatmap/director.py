@@ -116,9 +116,9 @@ class Director():
         parser.add_argument('--timestep',  metavar='', help='Heatmap update period.',      required=False, default=3600, type=int)
 
         # boolean flags
-        parser.add_argument('--plot',  action='store_true', help='Plot the estimated desk occupancy.')
-        parser.add_argument('--debug', action='store_true', help='Disables multithreading for debug visualization.')
-        parser.add_argument('--read',  action='store_true', help='Import cached distance maps.')
+        parser.add_argument('--no-plot', action='store_true', help='Suppress plots in stream.')
+        parser.add_argument('--debug',   action='store_true', help='Disables multithreading for debug visualization.')
+        parser.add_argument('--read',    action='store_true', help='Import cached distance maps.')
 
         # convert to dictionary
         self.args = vars(parser.parse_args())
@@ -1163,7 +1163,7 @@ class Director():
 
     
         # initial plot
-        if self.args['plot']:
+        if not self.args['no_plot']:
             # initialise heatmap
             self.update_heatmap()
 
@@ -1197,7 +1197,7 @@ class Director():
                     served = self.__new_event_data(event_data, cout=True)
 
                     # plot progress
-                    if served and self.args['plot']:
+                    if served and not self.args['no_plot']:
                         # get event time in unixtime
                         if 'temperature' in event_data['data']:
                             update_time = event_data['data']['temperature']['updateTime']
