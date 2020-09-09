@@ -25,7 +25,7 @@ class Director():
 
     """
 
-    def __init__(self, username, password, project_id, api_url_base, t_range=[0, 40], resolution=5, cache_dir='/tmp/', pickle_id='hmap_'):
+    def __init__(self, username='', password='', project_id='', api_url_base='', t_range=[0, 40], resolution=5, cache_dir='/tmp/', pickle_id='hmap_'):
         """
         Initialise Director class.
 
@@ -1247,7 +1247,11 @@ class Director():
 
         # draw doors
         for door in self.doors:
-            self.ax.plot(door.xx, door.yy, 'g', linewidth=5)
+            self.ax.plot(door.xx, door.yy, '-k', linewidth=14)
+            if door.closed:
+                self.ax.plot(door.xx, door.yy, '-', color='orangered', linewidth=8)
+            else:
+                self.ax.plot(door.xx, door.yy, '-', color='limegreen', linewidth=8)
 
         # draw goal node
         if goals != None and start != None:
@@ -1276,37 +1280,6 @@ class Director():
             plt.show()
         else:
             plt.waitforbuttonpress()
-
-
-    def initialise_construction_plot(self):
-        self.cfig, self.cax = plt.subplots()
-        self.cfig.set_figheight(self.ylim[1]-self.ylim[0])
-        self.cfig.set_figwidth(self.xlim[1]-self.xlim[0])
-        self.cax.set_xlim([self.xlim[0]-1, self.xlim[1]+1])
-        self.cax.set_ylim([self.ylim[0]-1, self.ylim[1]+1])
-        # self.cax.axis('off')
-
-
-    def plot_construction(self, terminate=False):
-        # initialise if not open
-        if not hasattr(self, 'cax') or not plt.fignum_exists(self.cfig.number):
-            self.initialise_construction_plot()
-
-        for room in self.rooms:
-            for corner in room.corners:
-                self.cax.plot(corner.x, corner.y, 'ok')
-            plt.waitforbuttonpress()
-            xx, yy = room.get_outline()
-            for i in range(len(xx)-1):
-                self.cax.plot(xx[i:i+2], yy[i:i+2], '-k', linewidth=3)
-                plt.waitforbuttonpress()
-            for sensor in room.sensors:
-                self.cax.plot(sensor.x, sensor.y, 'ok', markersize=10)
-                plt.waitforbuttonpress()
-
-
-        if terminate:
-            sys.exit()
 
 
     def initialise_heatmap_plot(self):
