@@ -93,7 +93,7 @@ class Director():
             print('\nUsing sample layout. No historic- of streaming data will be used.')
             print('For this, provide a layout using the --layout argument.')
             self.update_heatmap()
-            self.plot_heatmap(show=True)
+            self.plot_heatmap(update_time='Sample Layout', show=True)
             sys.exit()
 
 
