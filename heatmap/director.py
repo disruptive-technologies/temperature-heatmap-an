@@ -22,6 +22,9 @@ import heatmap.miniclasses as mcl
 
 class Director():
     """
+    Handles all API interfacing, including fetching sensors list and updating them.
+    Imports room layout and calculates euclidean distance maps during initialisation.
+    When new event data arrives in stream, delegate to the correct sensor for update.
 
     """
 
@@ -81,9 +84,9 @@ class Director():
 
         # generate distance map for each sensor
         if self.args['debug']:
-            self.__eucledian_map_debug()
+            self.__euclidean_map_debug()
         else:
-            self.__eucledian_map_threaded()
+            self.__euclidean_map_threaded()
 
         # spawn heatmap
         self.heatmap = np.zeros(shape=self.X.shape)
@@ -337,7 +340,7 @@ class Director():
 
     def __populate_grid(self, D, N, M, corner, room):
         """
-        Scan matrix and populate with eucledian distance for cells in line of sight of corner.
+        Scan matrix and populate with euclidean distance for cells in line of sight of corner.
 
         Parameters
         ----------
@@ -363,7 +366,7 @@ class Director():
                 if not self.__has_direct_los(mcl.Point(corner.x+corner.dx, corner.y+corner.dy), node, room):
                     continue
 
-                d = hlp.eucledian_distance(corner.x, corner.y, node.x, node.y)
+                d = hlp.euclidean_distance(corner.x, corner.y, node.x, node.y)
 
                 # update map if d is a valid value
                 if d != None:
@@ -400,10 +403,10 @@ class Director():
                 of.visited_doors = []
 
 
-    def __eucledian_map_debug(self):
+    def __euclidean_map_debug(self):
         """
-        Debug version of the eucledian distance mapping routine.
-        Does the same as __eucledian_map_threaded(), but without multithreading.
+        Debug version of the euclidean distance mapping routine.
+        Does the same as __euclidean_map_threaded(), but without multithreading.
 
         """
 
@@ -459,16 +462,16 @@ class Director():
                 self.plot_debug(start=sensor, grid=[sensor.D])
 
 
-    def __eucledian_map_threaded(self):
+    def __euclidean_map_threaded(self):
         """
-        Generate eucledian distance map for each sensor.
+        Generate euclidean distance map for each sensor.
         Applies multiprocessing for a significant reduction in execution time.
 
         """
 
         def map_process(sensor, i):
             """
-            Same as __eucledian_map_threaded() but must be isolated in a function for multiprocessing.
+            Same as __euclidean_map_threaded() but must be isolated in a function for multiprocessing.
             Writes populated distance maps to cache_dir so that we only have to do this once. It's slow.
 
             Parameters
@@ -628,7 +631,7 @@ class Director():
         # recursively iterate candidates
         for c in corner_candidates:
             # calculate distance to candidate
-            ddr = hlp.eucledian_distance(start.x, start.y, c.x, c.y)
+            ddr = hlp.euclidean_distance(start.x, start.y, c.x, c.y)
 
             # recursive
             path, doors = self.__find_shortest_paths(c, room, path, doors, dr+ddr)
@@ -638,7 +641,7 @@ class Director():
 
         for d in door_candidates:
             # calculate distance to candidate
-            ddr = hlp.eucledian_distance(start.x, start.y, d.inbound_offset.x, d.inbound_offset.y)
+            ddr = hlp.euclidean_distance(start.x, start.y, d.inbound_offset.x, d.inbound_offset.y)
 
             # fix offset
             d.outbound_offset.dx = 0
@@ -765,7 +768,7 @@ class Director():
         Returns
         -------
         return : float
-            Returns eucledian distance from start to goal if LOS is True.
+            Returns euclidean distance from start to goal if LOS is True.
             Returns None if no LOS.
 
         """
