@@ -20,7 +20,7 @@ PROJECT_ID = "PROJECT_ID"                # this is the project id
 ```
 
 ## Usage
-Running *python3 sensor_stream.py* without any arguments will generate a sample room- and sensor layout which will be displayed. A custom layout can be used by providing a .json file with the --layout argument. More details about generating custom layouts can be found in the application note.
+Running *python3 sensor_stream.py* without any arguments will generate a sample room- and sensor layout which will be displayed. A custom layout can be used by providing a .json file with the --layout argument. More details about generating custom layouts can be found in the application note, or by looking at the sample layout in */config/sample_layout.json*.
 ```
 usage: sensor_stream.py [-h] [--layout] [--starttime] [--endtime] [--timestep]
                         [--no-plot] [--debug] [--read]
