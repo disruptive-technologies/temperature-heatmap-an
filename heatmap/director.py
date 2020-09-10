@@ -502,7 +502,7 @@ class Director():
             for ri, room in enumerate(self.rooms):
                 # fill from doors
                 for di, door in enumerate(self.doors):
-                    print('Mapping Grid for Sensor {:>3}, Room {:>3},   Door {:>3}'.format(i, ri, di))
+                    print('Populating distance map: sensor {:>3}, room {:>3},   door {:>3}'.format(i, ri, di))
                     if door.outbound_room == room:
                         offset_node = door.outbound_offset
                         if len(offset_node.shortest_path) > 0:
@@ -510,7 +510,7 @@ class Director():
 
                 # fill from corners
                 for ci, corner in enumerate(room.corners):
-                    print('Mapping Grid for Sensor {:>3}, Room {:>3}, Corner {:>3}'.format(i, ri, ci))
+                    print('Populating distance map: sensor {:>3}, room {:>3}, corner {:>3}'.format(i, ri, ci))
                     if len(corner.shortest_path) > 0:
                         sensor.D, sensor.N, sensor.M = self.__populate_grid(sensor.D, sensor.N, sensor.M, corner, room)
 
