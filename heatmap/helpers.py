@@ -111,9 +111,9 @@ def loop_progress(i_track, i, n_max, n_steps, name=None, acronym=' '):
     return i_track
 
 
-def eucledian_distance(x1, y1, x2, y2):
+def euclidean_distance(x1, y1, x2, y2):
     """
-    Find eucledian distance between to points (x1, y1) and (x2, y2).
+    Find euclidean distance between to points (x1, y1) and (x2, y2).
 
     Parameters
     ----------
