@@ -1326,10 +1326,10 @@ class Director():
         pc.set_clim(self.t_range[0], self.t_range[1])
 
         # draw oofs
-        # for oof in self.oofs:
-        #     if oof.t is not None:
-        #         t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
-        #         self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=20)
+        for oof in self.oofs:
+            if oof.t is not None:
+                t = (oof.t-self.t_range[0])/(self.t_range[1]-self.t_range[0])
+                self.hax.plot(oof.x, oof.y, 'o', color=pc.cmap(t), markeredgecolor='k', markersize=20)
 
         # lock aspect
         plt.gca().set_aspect('equal', adjustable='box')
