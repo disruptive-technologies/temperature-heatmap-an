@@ -12,8 +12,12 @@ import multiprocessing as mpr
 
 # plotting
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib          import cm
 from matplotlib.colors   import Normalize
+
+# set matplotlib backend
+matplotlib.use('TkAgg')
 
 # project
 import heatmap.helpers     as hlp
