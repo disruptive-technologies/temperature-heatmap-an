@@ -1342,15 +1342,11 @@ class Director():
         # plt.xlabel('Distance [m]')
         # plt.ylabel('Distance [m]')
 
-        if 0:
-            self.hfig.savefig('/home/kepler/tmp/' + '{:09d}.png'.format(self.cc), dpi=self.hfig.dpi, bbox_inches='tight')
-            self.cc += 1
-        else:
-            if blocking:
-                if show:
-                    plt.show()
-                else:
-                    plt.waitforbuttonpress()
+        if blocking:
+            if show:
+                plt.show()
             else:
-                plt.pause(0.01)
+                plt.waitforbuttonpress()
+        else:
+            plt.pause(0.01)
 
