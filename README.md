@@ -4,7 +4,7 @@
 This repository contains the example code talked about in [this application note](https://support.disruptive-technologies.com/hc/en-us/articles/360016253460), presenting a method of using the Disruptive Technologies (DT) Wireless Temperature Sensors for generating a temperature heatmap which are continously updated for a data stream. Written in Python 3, it uses the DT Developer API to communicate with a DT Studio project and its sensors. 
 
 ## Before Running Any code
-A DT Studio project containing temperature sensors should be made. All temperature sensors in the project will attemped forecasted upon.
+A DT Studio project containing temperature sensors should be made. Only sensors specified in the heatmap scheme will be fetched.
 
 ## Environment Setup
 Dependencies can be installed using pip.
