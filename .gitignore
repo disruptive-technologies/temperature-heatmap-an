@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 README.pdf
+config/oslo_office.json
